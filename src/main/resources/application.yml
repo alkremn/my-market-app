@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: my-market-app
+  database:
+    url: jdbc:postgresql://localhost:5432/marketdb
+    driver-class-name: org.postgresql.Driver
+    username: postgres
+    password: postgres
