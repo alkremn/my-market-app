@@ -1,8 +1,11 @@
 spring:
-  application:
-    name: my-market-app
-  database:
+  datasource:
     url: jdbc:postgresql://localhost:5432/marketdb
-    driver-class-name: org.postgresql.Driver
     username: postgres
     password: postgres
+  sql:
+    init:
+      mode: always
+  jpa:
+    hibernate:
+      ddl-auto: none
