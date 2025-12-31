@@ -12,3 +12,13 @@ CREATE TABLE IF NOT EXISTS items (
     created_at  TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ    NOT NULL DEFAULT NOW()
 );
+
+------------------------------------------------------------
+-- INDEXES
+------------------------------------------------------------
+
+-- Index for case-insensitive title searches and sorting
+CREATE INDEX IF NOT EXISTS idx_items_title_lower ON items(LOWER(title));
+
+-- Index for price sorting
+CREATE INDEX IF NOT EXISTS idx_items_price ON items(price);

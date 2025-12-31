@@ -14,7 +14,6 @@ public class Item {
     private String description;
     private String imgPath;
     private long price;
-    private int count;
     private Date createdAt;
     private Date updatedAt;
 
@@ -23,7 +22,6 @@ public class Item {
     public String description() { return description; }
     public String imgPath() { return imgPath; }
     public long price() { return price; }
-    public int count() { return count; }
     public Date createdAt() { return createdAt; }
     public Date updatedAt() { return updatedAt; }
 }
