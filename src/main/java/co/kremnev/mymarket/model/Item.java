@@ -9,19 +9,19 @@ import java.util.Date;
 public class Item {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private long id;
     private String title;
     private String description;
     private String imgPath;
-    private long price;
+    private double price;
     private Date createdAt;
     private Date updatedAt;
 
-    public Long id() { return id; }
-    public String title() { return title; }
-    public String description() { return description; }
-    public String imgPath() { return imgPath; }
-    public long price() { return price; }
-    public Date createdAt() { return createdAt; }
-    public Date updatedAt() { return updatedAt; }
+    public long getId() { return id; }
+    public String getTitle() { return title; }
+    public String getDescription() { return description; }
+    public String getImgPath() { return imgPath; }
+    public double getPrice() { return price; }
+    public Date getCreatedAt() { return createdAt; }
+    public Date getUpdatedAt() { return updatedAt; }
 }

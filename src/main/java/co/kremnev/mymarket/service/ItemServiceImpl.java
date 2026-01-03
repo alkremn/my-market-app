@@ -1,6 +1,6 @@
 package co.kremnev.mymarket.service;
 
-import co.kremnev.mymarket.dto.ItemsQueryRequest;
+import co.kremnev.mymarket.dto.Request.ItemsQueryRequest;
 import co.kremnev.mymarket.model.Item;
 import co.kremnev.mymarket.repository.ItemRepository;
 import org.springframework.data.domain.Page;
@@ -9,7 +9,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class ItemServiceImpl implements ItemService {
@@ -34,6 +36,11 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public Optional<Item> getById(long id) {
         return itemRepository.findById(id);
+    }
+
+    @Override
+    public List<Item> getByIds(Set<Long> ids) {
+        return itemRepository.findAllById(ids);
     }
 
     private Pageable createPageable(ItemsQueryRequest queryRequest) {
