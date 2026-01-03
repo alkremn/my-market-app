@@ -24,14 +24,19 @@ dependencies {
 
 	runtimeOnly("org.postgresql:postgresql")
 
-	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
-	testImplementation("org.springframework.boot:spring-boot-starter-thymeleaf-test")
-
+	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
 	testRuntimeOnly("com.h2database:h2")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 tasks.test {
+	useJUnitPlatform()
 
+	// JVM arguments for testing
+	jvmArgs(
+		"-XX:+EnableDynamicAgentLoading",  // Allow Mockito to attach as Java agent (JDK 21+)
+		"-Xshare:off"  // Disable Class Data Sharing to suppress CDS warning
+	)
 }

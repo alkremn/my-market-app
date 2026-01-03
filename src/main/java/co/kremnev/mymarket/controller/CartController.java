@@ -50,7 +50,7 @@ public class CartController {
 
     @PostMapping("/cart/items")
     public String getItems(@RequestParam long id, @RequestParam String action, Model model, HttpSession session) {
-        cartService.removeItem(session, id);
+        cartService.updateItemCount(session, id,  action.equals("PLUS") ? 1 : -1);
         var cartItems = cartService.getCartItems(session);
         model.addAttribute("items", cartItems.stream()
                 .map(item -> ItemDto.from(item.item(), item.quantity())).toList());
