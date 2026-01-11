@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: practicum_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: marketdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - ../src/main/resources/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ../src/main/resources/seed-dev.sql:/docker-entrypoint-initdb.d/02_seed-dev.sql
