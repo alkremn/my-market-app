@@ -6,13 +6,16 @@ import co.kremnev.mymarket.dto.Paging;
 import co.kremnev.mymarket.service.CartService;
 import co.kremnev.mymarket.service.ItemService;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 
 @Controller
+@Validated
 public class ItemController {
 
     private final ItemService itemService;
@@ -44,7 +47,7 @@ public class ItemController {
     }
 
     @GetMapping("/items/{id}")
-    public String getItem(@PathVariable("id") long id, Model model, HttpSession session) {
+    public String getItem(@PathVariable("id") @NotNull long id, Model model, HttpSession session) {
         var itemOpt = itemService.getById(id);
         var cart = cartService.getCart(session);
         return itemOpt.map(item -> {

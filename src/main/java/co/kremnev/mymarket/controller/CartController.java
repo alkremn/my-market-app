@@ -1,8 +1,10 @@
 package co.kremnev.mymarket.controller;
 
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import co.kremnev.mymarket.dto.ItemDto;
@@ -10,6 +12,7 @@ import co.kremnev.mymarket.dto.Request.CartCommandRequest;
 import co.kremnev.mymarket.service.CartService;
 
 @Controller
+@Validated
 public class CartController {
     private final CartService cartService;
 
@@ -18,7 +21,10 @@ public class CartController {
     }
 
     @PostMapping("/items")
-    public String addOrRemoveItemInCart(@ModelAttribute CartCommandRequest request, HttpSession session) {
+    public String addOrRemoveItemInCart(
+            @ModelAttribute @Valid CartCommandRequest request,
+            HttpSession session
+    ) {
         cartService.updateItemCount(session, request.id(), request.action());
 
         return "redirect:/items?search=" + request.search() +
@@ -30,9 +36,9 @@ public class CartController {
     @PostMapping("/items/{id}")
     public String addOrRemoveItemInCartById(
             @PathVariable(required = false) String id,
-            @ModelAttribute CartCommandRequest request,
-            HttpSession session) {
-
+            @ModelAttribute @Valid CartCommandRequest request,
+            HttpSession session
+    ) {
         cartService.updateItemCount(session, request.id(), request.action());
         return "redirect:/items/" + id;
     }

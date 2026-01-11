@@ -38,6 +38,10 @@ public class CartServiceImpl implements CartService {
     @Override
     public void updateItemCount(HttpSession session, long itemId, String action) {
         SessionCart cart = getCart(session);
+        if (action.equals("DELETE")) {
+            cart.removeItem(itemId);
+            return;
+        }
         var itemCount = cart.getItemCountById(itemId);
         var newCount = itemCount + (action.equals("PLUS") ? 1 : -1);
         if (newCount < 0) {
