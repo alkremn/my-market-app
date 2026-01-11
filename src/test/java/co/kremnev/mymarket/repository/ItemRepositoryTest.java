@@ -12,6 +12,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -37,9 +38,14 @@ class ItemRepositoryTest {
         itemRepository.deleteAll();
 
         // Create test items
-        item1 = createItem("Laptop Computer", "High performance laptop", 999.99);
-        item2 = createItem("Desktop Computer", "Gaming desktop", 1499.99);
-        item3 = createItem("Wireless Mouse", "Ergonomic mouse", 29.99);
+        item1 = Item.builder().title("Laptop Computer")
+                .description("High performance laptop").price(BigDecimal.valueOf(999.99)).build();
+
+        item2 = Item.builder().title("Desktop Computer")
+                .description("Gaming desktop").price(BigDecimal.valueOf(1499.99)).build();
+
+        item3 = Item.builder().title("Wireless Mouse")
+                .description("Ergonomic mouse").price(BigDecimal.valueOf(29.99)).build();
 
         // Persist and flush to ensure they're in the database
         entityManager.persist(item1);
@@ -72,12 +78,13 @@ class ItemRepositoryTest {
 
     @Test
     void save_shouldPersistNewItem() {
-        Item newItem = createItem("Keyboard", "Mechanical keyboard", 89.99);
+        Item newItem = Item.builder().title("Keyboard")
+                .description("Mechanical keyboard").price(BigDecimal.valueOf(89.99)).build();
 
         Item saved = itemRepository.save(newItem);
 
         assertNotNull(saved.getId());
-        assertEquals("Keyboard", saved.getTitle());
+        assertEquals(newItem.getTitle(), saved.getTitle());
         assertEquals(4, itemRepository.count());
     }
 
@@ -180,27 +187,5 @@ class ItemRepositoryTest {
         boolean exists = itemRepository.existsById(999L);
 
         assertFalse(exists);
-    }
-
-    private Item createItem(String title, String description, double price) {
-        try {
-            Item item = new Item();
-
-            var titleField = Item.class.getDeclaredField("title");
-            titleField.setAccessible(true);
-            titleField.set(item, title);
-
-            var descField = Item.class.getDeclaredField("description");
-            descField.setAccessible(true);
-            descField.set(item, description);
-
-            var priceField = Item.class.getDeclaredField("price");
-            priceField.setAccessible(true);
-            priceField.set(item, price);
-
-            return item;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to create test item", e);
-        }
     }
 }

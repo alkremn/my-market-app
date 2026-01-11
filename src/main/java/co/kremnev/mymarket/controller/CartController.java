@@ -1,12 +1,13 @@
 package co.kremnev.mymarket.controller;
 
-import co.kremnev.mymarket.dto.ItemDto;
-import co.kremnev.mymarket.dto.Request.CartCommandRequest;
-import co.kremnev.mymarket.service.CartService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+
+import co.kremnev.mymarket.dto.ItemDto;
+import co.kremnev.mymarket.dto.Request.CartCommandRequest;
+import co.kremnev.mymarket.service.CartService;
 
 @Controller
 public class CartController {
@@ -16,27 +17,24 @@ public class CartController {
         this.cartService = cartService;
     }
 
-    @PostMapping(value = {"/items", "/items/{id}"})
-    public String addOrRemoveToCart(
+    @PostMapping("/items")
+    public String addOrRemoveItemInCart(@ModelAttribute CartCommandRequest request, HttpSession session) {
+        cartService.updateItemCount(session, request.id(), request.action());
+
+        return "redirect:/items?search=" + request.search() +
+                "&sort=" + request.sort() +
+                "&pageNumber=" + request.pageNumber() +
+                "&pageSize=" + request.pageSize();
+    }
+
+    @PostMapping("/items/{id}")
+    public String addOrRemoveItemInCartById(
             @PathVariable(required = false) String id,
             @ModelAttribute CartCommandRequest request,
             HttpSession session) {
 
-        String action = request.action();
-
-        if (request.id() != null && action != null) {
-            cartService.updateItemCount(session, request.id(), action.equals("PLUS") ? 1 : -1);
-        }
-
-        if (id == null) {
-            return "redirect:/items?search=" + request.search() +
-                    "&sort=" + request.sort() +
-                    "&pageNumber=" + request.pageNumber() +
-                    "&pageSize=" + request.pageSize();
-        } else {
-            return "redirect:/items/" + id;
-        }
-
+        cartService.updateItemCount(session, request.id(), request.action());
+        return "redirect:/items/" + id;
     }
 
     @GetMapping("/cart/items")
@@ -50,7 +48,7 @@ public class CartController {
 
     @PostMapping("/cart/items")
     public String getItems(@RequestParam long id, @RequestParam String action, Model model, HttpSession session) {
-        cartService.updateItemCount(session, id,  action.equals("PLUS") ? 1 : -1);
+        cartService.updateItemCount(session, id,  action);
         var cartItems = cartService.getCartItems(session);
         model.addAttribute("items", cartItems.stream()
                 .map(item -> ItemDto.from(item.item(), item.quantity())).toList());

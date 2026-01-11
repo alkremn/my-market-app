@@ -9,6 +9,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpSession;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -31,7 +32,8 @@ class OrderControllerTest extends BaseControllerTest {
     @BeforeEach
     void setUp() {
         session = new MockHttpSession();
-        testItem = createTestItem(1L, "Test Item", "Description", 10.0);
+        testItem = Item.builder().id(1L).title("Test Item")
+                .description("Description").price(BigDecimal.valueOf(10.0)).build();
         testOrder = createTestOrder(1L, List.of(
             createTestOrderItem(1L, testItem, 2)
         ));
@@ -109,31 +111,6 @@ class OrderControllerTest extends BaseControllerTest {
 
         verify(cartService).getCartItems(any());
         verify(orderService).createOrder(List.of());
-    }
-
-    private Item createTestItem(long id, String title, String description, double price) {
-        try {
-            Item item = new Item();
-            var idField = Item.class.getDeclaredField("id");
-            idField.setAccessible(true);
-            idField.set(item, id);
-
-            var titleField = Item.class.getDeclaredField("title");
-            titleField.setAccessible(true);
-            titleField.set(item, title);
-
-            var descField = Item.class.getDeclaredField("description");
-            descField.setAccessible(true);
-            descField.set(item, description);
-
-            var priceField = Item.class.getDeclaredField("price");
-            priceField.setAccessible(true);
-            priceField.set(item, price);
-
-            return item;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 
     private OrderItem createTestOrderItem(long id, Item item, int quantity) {

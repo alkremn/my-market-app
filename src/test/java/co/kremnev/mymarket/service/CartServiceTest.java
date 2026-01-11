@@ -11,6 +11,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
 
@@ -22,6 +23,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class CartServiceTest {
     private static final String CART_SESSION_KEY = "SHOPPING_CART";
+
     @Mock
     private ItemService itemService;
 
@@ -38,8 +40,9 @@ class CartServiceTest {
     @BeforeEach
     void setUp() {
         sessionCart = new SessionCart();
-        testItem1 = createTestItem(1L, "Item 1", 10.0);
-        testItem2 = createTestItem(2L, "Item 2", 20.0);
+
+        testItem1 = Item.builder().id(1L).title("Item 1").price(BigDecimal.valueOf(10.0)).build();
+        testItem2 = Item.builder().id(2L).title("Item 2").price(BigDecimal.valueOf(20.0)).build();
     }
 
     @Test
@@ -67,7 +70,8 @@ class CartServiceTest {
     void updateItemCount_shouldAddItem_whenDeltaIsPositive() {
         when(session.getAttribute(CART_SESSION_KEY)).thenReturn(sessionCart);
 
-        cartService.updateItemCount(session, 1L, 2);
+        cartService.updateItemCount(session, 1L, "PLUS");
+        cartService.updateItemCount(session, 1L, "PLUS");
 
         assertEquals(2, sessionCart.getItemCountById(1L));
     }
@@ -77,7 +81,8 @@ class CartServiceTest {
         sessionCart.addItem(1L, 3);
         when(session.getAttribute(CART_SESSION_KEY)).thenReturn(sessionCart);
 
-        cartService.updateItemCount(session, 1L, 2);
+        cartService.updateItemCount(session, 1L, "PLUS");
+        cartService.updateItemCount(session, 1L, "PLUS");
 
         assertEquals(5, sessionCart.getItemCountById(1L));
     }
@@ -87,7 +92,8 @@ class CartServiceTest {
         sessionCart.addItem(1L, 5);
         when(session.getAttribute(CART_SESSION_KEY)).thenReturn(sessionCart);
 
-        cartService.updateItemCount(session, 1L, -2);
+        cartService.updateItemCount(session, 1L, "MINUS");
+        cartService.updateItemCount(session, 1L, "MINUS");
 
         assertEquals(3, sessionCart.getItemCountById(1L));
     }
@@ -97,7 +103,9 @@ class CartServiceTest {
         sessionCart.addItem(1L, 3);
         when(session.getAttribute(CART_SESSION_KEY)).thenReturn(sessionCart);
 
-        cartService.updateItemCount(session, 1L, -3);
+        cartService.updateItemCount(session, 1L, "MINUS");
+        cartService.updateItemCount(session, 1L, "MINUS");
+        cartService.updateItemCount(session, 1L, "MINUS");
 
         assertEquals(0, sessionCart.getItemCountById(1L));
         assertTrue(sessionCart.isEmpty());
@@ -108,7 +116,8 @@ class CartServiceTest {
         sessionCart.addItem(1L, 2);
         when(session.getAttribute(CART_SESSION_KEY)).thenReturn(sessionCart);
 
-        cartService.updateItemCount(session, 1L, -5);
+        cartService.updateItemCount(session, 1L, "MINUS");
+        cartService.updateItemCount(session, 1L, "MINUS");
 
         assertEquals(0, sessionCart.getItemCountById(1L));
         assertTrue(sessionCart.isEmpty());
@@ -157,37 +166,15 @@ class CartServiceTest {
             new CartItem(testItem2, 3)  // 3 * 20.0 = 60.0
         );
 
-        double total = cartService.getCartTotal(cartItems);
+        BigDecimal total = cartService.getCartTotal(cartItems);
 
-        assertEquals(80.0, total, 0.01);
+        assertEquals(80.0, total.doubleValue(), 0.01);
     }
 
     @Test
     void getCartTotal_shouldReturnZero_whenCartIsEmpty() {
-        double total = cartService.getCartTotal(List.of());
+        BigDecimal total = cartService.getCartTotal(List.of());
 
-        assertEquals(0.0, total, 0.01);
-    }
-
-    private Item createTestItem(long id, String title, double price) {
-        // Using reflection to set private fields for testing
-        try {
-            Item item = new Item();
-            var idField = Item.class.getDeclaredField("id");
-            idField.setAccessible(true);
-            idField.set(item, id);
-
-            var titleField = Item.class.getDeclaredField("title");
-            titleField.setAccessible(true);
-            titleField.set(item, title);
-
-            var priceField = Item.class.getDeclaredField("price");
-            priceField.setAccessible(true);
-            priceField.set(item, price);
-
-            return item;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        assertEquals(0.0, total.doubleValue(), 0.01);
     }
 }

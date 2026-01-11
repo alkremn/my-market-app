@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -36,8 +37,8 @@ class OrderRepositoryTest {
         orderRepository.deleteAll();
 
         // Create test items
-        testItem1 = createItem("Test Item 1", "Description 1", 10.0);
-        testItem2 = createItem("Test Item 2", "Description 2", 20.0);
+        testItem1 = Item.builder().title("Test Item 1").description("Description 1").price(BigDecimal.valueOf(10.0)).build();
+        testItem2 = Item.builder().title("Test Item 2").description("Description 2").price(BigDecimal.valueOf(20.0)).build();
 
         entityManager.persist(testItem1);
         entityManager.persist(testItem2);
@@ -197,27 +198,5 @@ class OrderRepositoryTest {
         orderRepository.deleteAll();
 
         assertEquals(0, orderRepository.count());
-    }
-
-    private Item createItem(String title, String description, double price) {
-        try {
-            Item item = new Item();
-
-            var titleField = Item.class.getDeclaredField("title");
-            titleField.setAccessible(true);
-            titleField.set(item, title);
-
-            var descField = Item.class.getDeclaredField("description");
-            descField.setAccessible(true);
-            descField.set(item, description);
-
-            var priceField = Item.class.getDeclaredField("price");
-            priceField.setAccessible(true);
-            priceField.set(item, price);
-
-            return item;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to create test item", e);
-        }
     }
 }

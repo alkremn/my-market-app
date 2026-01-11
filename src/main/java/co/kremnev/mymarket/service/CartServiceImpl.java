@@ -6,6 +6,7 @@ import co.kremnev.mymarket.model.Item;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,10 +36,10 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    public void updateItemCount(HttpSession session, long itemId, int delta) {
+    public void updateItemCount(HttpSession session, long itemId, String action) {
         SessionCart cart = getCart(session);
         var itemCount = cart.getItemCountById(itemId);
-        var newCount = itemCount + delta;
+        var newCount = itemCount + (action.equals("PLUS") ? 1 : -1);
         if (newCount < 0) {
             cart.removeItem(itemId);
         } else {
@@ -60,9 +61,9 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    public double getCartTotal(List<CartItem> cartItems) {
+    public BigDecimal getCartTotal(List<CartItem> cartItems) {
         return cartItems.stream()
-            .mapToDouble(CartItem::getSubtotal)
-                .sum();
+            .map(CartItem::getSubtotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

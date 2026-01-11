@@ -13,6 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,8 +36,8 @@ class OrderServiceTest {
 
     @BeforeEach
     void setUp() {
-        testItem1 = createTestItem(1L, "Item 1", "Description 1", 10.0);
-        testItem2 = createTestItem(2L, "Item 2", "Description 2", 20.0);
+        testItem1 = Item.builder().id(1L).title("Item 1").description("Description 1").price(BigDecimal.valueOf(10.0)).build();
+        testItem2 = Item.builder().id(2L).title("Item 2").description("Description 2").price(BigDecimal.valueOf(20.0)).build();
 
         cartItems = List.of(
             new CartItem(testItem1, 2),
@@ -148,30 +149,5 @@ class OrderServiceTest {
         assertNotNull(savedOrder);
         assertNotNull(savedOrder.getOrderItems());
         assertTrue(savedOrder.getOrderItems().isEmpty());
-    }
-
-    private Item createTestItem(long id, String title, String description, double price) {
-        try {
-            Item item = new Item();
-            var idField = Item.class.getDeclaredField("id");
-            idField.setAccessible(true);
-            idField.set(item, id);
-
-            var titleField = Item.class.getDeclaredField("title");
-            titleField.setAccessible(true);
-            titleField.set(item, title);
-
-            var descField = Item.class.getDeclaredField("description");
-            descField.setAccessible(true);
-            descField.set(item, description);
-
-            var priceField = Item.class.getDeclaredField("price");
-            priceField.setAccessible(true);
-            priceField.set(item, price);
-
-            return item;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 }

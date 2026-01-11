@@ -3,12 +3,14 @@ package co.kremnev.mymarket.dto;
 import co.kremnev.mymarket.model.Item;
 import co.kremnev.mymarket.model.OrderItem;
 
+import java.math.BigDecimal;
+
 public record ItemDto(
     long id,
     String title,
     String description,
     String imgPath,
-    double price,
+    BigDecimal price,
     int count
 ) {
     public static ItemDto from(Item item, int count) {
