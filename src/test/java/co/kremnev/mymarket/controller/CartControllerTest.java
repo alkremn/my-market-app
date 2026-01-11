@@ -120,7 +120,7 @@ class CartControllerTest extends BaseControllerTest {
                 .param("pageNumber", "1")
                 .param("pageSize", "5")
                 .session(session))
-            .andExpect(status().is3xxRedirection());
+            .andExpect(status().is4xxClientError());
 
         verify(cartService, never()).updateItemCount(any(), anyLong(), eq("PLUS"));
     }
