@@ -49,7 +49,7 @@ class CartServiceTest {
     void getCart_shouldCreateNewCart_whenCartDoesNotExist() {
         when(session.getAttribute(CART_SESSION_KEY)).thenReturn(null);
 
-        SessionCart cart = cartService.getCart(session);
+        SessionCart cart = cartService.getCart();
 
         assertNotNull(cart);
         assertTrue(cart.isEmpty());
@@ -60,7 +60,7 @@ class CartServiceTest {
     void getCart_shouldReturnExistingCart_whenCartExists() {
         when(session.getAttribute(CART_SESSION_KEY)).thenReturn(sessionCart);
 
-        SessionCart cart = cartService.getCart(session);
+        SessionCart cart = cartService.getCart();
 
         assertSame(sessionCart, cart);
         verify(session, never()).setAttribute(anyString(), any());
@@ -70,8 +70,8 @@ class CartServiceTest {
     void updateItemCount_shouldAddItem_whenDeltaIsPositive() {
         when(session.getAttribute(CART_SESSION_KEY)).thenReturn(sessionCart);
 
-        cartService.updateItemCount(session, 1L, "PLUS");
-        cartService.updateItemCount(session, 1L, "PLUS");
+        cartService.updateItemCount(1L, "PLUS");
+        cartService.updateItemCount(1L, "PLUS");
 
         assertEquals(2, sessionCart.getItemCountById(1L));
     }
@@ -81,8 +81,8 @@ class CartServiceTest {
         sessionCart.addItem(1L, 3);
         when(session.getAttribute(CART_SESSION_KEY)).thenReturn(sessionCart);
 
-        cartService.updateItemCount(session, 1L, "PLUS");
-        cartService.updateItemCount(session, 1L, "PLUS");
+        cartService.updateItemCount(1L, "PLUS");
+        cartService.updateItemCount(1L, "PLUS");
 
         assertEquals(5, sessionCart.getItemCountById(1L));
     }
@@ -92,8 +92,8 @@ class CartServiceTest {
         sessionCart.addItem(1L, 5);
         when(session.getAttribute(CART_SESSION_KEY)).thenReturn(sessionCart);
 
-        cartService.updateItemCount(session, 1L, "MINUS");
-        cartService.updateItemCount(session, 1L, "MINUS");
+        cartService.updateItemCount(1L, "MINUS");
+        cartService.updateItemCount(1L, "MINUS");
 
         assertEquals(3, sessionCart.getItemCountById(1L));
     }
@@ -103,9 +103,9 @@ class CartServiceTest {
         sessionCart.addItem(1L, 3);
         when(session.getAttribute(CART_SESSION_KEY)).thenReturn(sessionCart);
 
-        cartService.updateItemCount(session, 1L, "MINUS");
-        cartService.updateItemCount(session, 1L, "MINUS");
-        cartService.updateItemCount(session, 1L, "MINUS");
+        cartService.updateItemCount(1L, "MINUS");
+        cartService.updateItemCount(1L, "MINUS");
+        cartService.updateItemCount(1L, "MINUS");
 
         assertEquals(0, sessionCart.getItemCountById(1L));
         assertTrue(sessionCart.isEmpty());
@@ -116,8 +116,8 @@ class CartServiceTest {
         sessionCart.addItem(1L, 2);
         when(session.getAttribute(CART_SESSION_KEY)).thenReturn(sessionCart);
 
-        cartService.updateItemCount(session, 1L, "MINUS");
-        cartService.updateItemCount(session, 1L, "MINUS");
+        cartService.updateItemCount(1L, "MINUS");
+        cartService.updateItemCount(1L, "MINUS");
 
         assertEquals(0, sessionCart.getItemCountById(1L));
         assertTrue(sessionCart.isEmpty());
@@ -129,7 +129,7 @@ class CartServiceTest {
         sessionCart.addItem(2L, 2);
         when(session.getAttribute(CART_SESSION_KEY)).thenReturn(sessionCart);
 
-        cartService.removeItem(session, 1L);
+        cartService.removeItem(1L);
 
         assertEquals(0, sessionCart.getItemCountById(1L));
         assertEquals(2, sessionCart.getItemCountById(2L));
@@ -139,7 +139,7 @@ class CartServiceTest {
     void getCartItems_shouldReturnEmptyList_whenCartIsEmpty() {
         when(session.getAttribute(CART_SESSION_KEY)).thenReturn(sessionCart);
 
-        List<CartItem> items = cartService.getCartItems(session);
+        List<CartItem> items = cartService.getCartItems();
 
         assertTrue(items.isEmpty());
         verify(itemService, never()).getByIds(any());
@@ -152,7 +152,7 @@ class CartServiceTest {
         when(session.getAttribute(CART_SESSION_KEY)).thenReturn(sessionCart);
         when(itemService.getByIds(Set.of(1L, 2L))).thenReturn(List.of(testItem1, testItem2));
 
-        List<CartItem> items = cartService.getCartItems(session);
+        List<CartItem> items = cartService.getCartItems();
 
         assertEquals(2, items.size());
         assertTrue(items.stream().anyMatch(ci -> ci.item().getId() == 1L && ci.quantity() == 2));

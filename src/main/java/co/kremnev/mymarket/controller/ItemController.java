@@ -5,7 +5,6 @@ import co.kremnev.mymarket.dto.Request.ItemsQueryRequest;
 import co.kremnev.mymarket.dto.Paging;
 import co.kremnev.mymarket.service.CartService;
 import co.kremnev.mymarket.service.ItemService;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.annotation.Validated;
@@ -27,9 +26,9 @@ public class ItemController {
     }
 
     @GetMapping(value = {"/", "/items"})
-    public String getItems(@ModelAttribute ItemsQueryRequest queryParams, Model model, HttpSession session) {
+    public String getItems(@ModelAttribute ItemsQueryRequest queryParams, Model model) {
         var page = itemService.getAllItems(queryParams);
-        var cart = cartService.getCart(session);
+        var cart = cartService.getCart();
         var itemsWithCount = page.getContent().stream()
                 .map(item -> ItemDto.from(item, cart.getItemCountById(item.getId())));
         var currentPaging = new Paging(
@@ -47,9 +46,9 @@ public class ItemController {
     }
 
     @GetMapping("/items/{id}")
-    public String getItem(@PathVariable("id") long id, Model model, HttpSession session) {
+    public String getItem(@PathVariable("id") long id, Model model) {
         var itemOpt = itemService.getById(id);
-        var cart = cartService.getCart(session);
+        var cart = cartService.getCart();
         return itemOpt.map(item -> {
             model.addAttribute("item", ItemDto.from(item, cart.getItemCountById(item.getId())));
             return "item";

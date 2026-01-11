@@ -13,14 +13,16 @@ import java.util.List;
 @Service
 public class CartServiceImpl implements CartService {
     private static final String CART_SESSION_KEY = "SHOPPING_CART";
+    private final HttpSession session;
     private final ItemService itemService;
 
-    public CartServiceImpl(ItemService itemService) {
+    public CartServiceImpl(HttpSession session, ItemService itemService) {
+        this.session = session;
         this.itemService = itemService;
     }
 
     @Override
-    public SessionCart getCart(HttpSession session) {
+    public SessionCart getCart() {
         SessionCart cart = (SessionCart) session.getAttribute(CART_SESSION_KEY);
         if (cart == null) {
             cart = new SessionCart();
@@ -30,14 +32,14 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    public void removeItem(HttpSession session, long itemId) {
-        SessionCart cart = getCart(session);
+    public void removeItem(long itemId) {
+        SessionCart cart = getCart();
         cart.removeItem(itemId);
     }
 
     @Override
-    public void updateItemCount(HttpSession session, long itemId, String action) {
-        SessionCart cart = getCart(session);
+    public void updateItemCount(long itemId, String action) {
+        SessionCart cart = getCart();
         if (action.equals("DELETE")) {
             cart.removeItem(itemId);
             return;
@@ -52,8 +54,8 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    public List<CartItem> getCartItems(HttpSession session) {
-        SessionCart cart = getCart(session);
+    public List<CartItem> getCartItems() {
+        SessionCart cart = getCart();
         if (cart.isEmpty()) {
             return new ArrayList<>();
         }
@@ -69,5 +71,11 @@ public class CartServiceImpl implements CartService {
         return cartItems.stream()
             .map(CartItem::getSubtotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    @Override
+    public void clear() {
+        var cart = getCart();
+        cart.clear();
     }
 }

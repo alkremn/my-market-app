@@ -89,27 +89,27 @@ class OrderControllerTest extends BaseControllerTest {
     @Test
     void buy_shouldCreateOrderAndRedirect() throws Exception {
         List<CartItem> cartItems = List.of(new CartItem(testItem, 2));
-        when(cartService.getCartItems(any())).thenReturn(cartItems);
+        when(cartService.getCartItems()).thenReturn(cartItems);
         when(orderService.createOrder(anyList())).thenReturn(testOrder);
 
         mockMvc.perform(post("/buy").session(session))
             .andExpect(status().is3xxRedirection())
             .andExpect(redirectedUrl("/orders/1?newOrder=true"));
 
-        verify(cartService).getCartItems(any());
+        verify(cartService).getCartItems();
         verify(orderService).createOrder(cartItems);
     }
 
     @Test
     void buy_shouldHandleEmptyCart() throws Exception {
-        when(cartService.getCartItems(any())).thenReturn(List.of());
+        when(cartService.getCartItems()).thenReturn(List.of());
         when(orderService.createOrder(anyList())).thenReturn(testOrder);
 
         mockMvc.perform(post("/buy").session(session))
             .andExpect(status().is3xxRedirection())
             .andExpect(redirectedUrl("/orders/1?newOrder=true"));
 
-        verify(cartService).getCartItems(any());
+        verify(cartService).getCartItems();
         verify(orderService).createOrder(List.of());
     }
 

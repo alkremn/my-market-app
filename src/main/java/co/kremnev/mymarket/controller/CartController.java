@@ -1,6 +1,5 @@
 package co.kremnev.mymarket.controller;
 
-import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -21,11 +20,8 @@ public class CartController {
     }
 
     @PostMapping("/items")
-    public String addOrRemoveItemInCart(
-            @ModelAttribute @Valid CartCommandRequest request,
-            HttpSession session
-    ) {
-        cartService.updateItemCount(session, request.id(), request.action());
+    public String addOrRemoveItemInCart(@ModelAttribute @Valid CartCommandRequest request) {
+        cartService.updateItemCount(request.id(), request.action());
 
         return "redirect:/items?search=" + request.search() +
                 "&sort=" + request.sort() +
@@ -36,16 +32,15 @@ public class CartController {
     @PostMapping("/items/{id}")
     public String addOrRemoveItemInCartById(
             @PathVariable(required = false) String id,
-            @ModelAttribute @Valid CartCommandRequest request,
-            HttpSession session
+            @ModelAttribute @Valid CartCommandRequest request
     ) {
-        cartService.updateItemCount(session, request.id(), request.action());
+        cartService.updateItemCount(request.id(), request.action());
         return "redirect:/items/" + id;
     }
 
     @GetMapping("/cart/items")
-    public String getItems(Model model, HttpSession session) {
-        var cartItems = cartService.getCartItems(session);
+    public String getItems(Model model) {
+        var cartItems = cartService.getCartItems();
         model.addAttribute("items", cartItems.stream()
                 .map(item -> ItemDto.from(item.item(), item.quantity())).toList());
         model.addAttribute("total", cartService.getCartTotal(cartItems));
@@ -53,9 +48,9 @@ public class CartController {
     }
 
     @PostMapping("/cart/items")
-    public String getItems(@RequestParam long id, @RequestParam String action, Model model, HttpSession session) {
-        cartService.updateItemCount(session, id,  action);
-        var cartItems = cartService.getCartItems(session);
+    public String getItems(@RequestParam long id, @RequestParam String action, Model model) {
+        cartService.updateItemCount(id,  action);
+        var cartItems = cartService.getCartItems();
         model.addAttribute("items", cartItems.stream()
                 .map(item -> ItemDto.from(item.item(), item.quantity())).toList());
         model.addAttribute("total", cartService.getCartTotal(cartItems));

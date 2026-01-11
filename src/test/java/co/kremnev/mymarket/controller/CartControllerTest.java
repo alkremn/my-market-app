@@ -31,7 +31,7 @@ class CartControllerTest extends BaseControllerTest {
     @Test
     void getCartItems_shouldDisplayCartPage() throws Exception {
         List<CartItem> cartItems = List.of(new CartItem(testItem, 2));
-        when(cartService.getCartItems(any())).thenReturn(cartItems);
+        when(cartService.getCartItems()).thenReturn(cartItems);
         when(cartService.getCartTotal(cartItems)).thenReturn(BigDecimal.valueOf(20.0));
 
         mockMvc.perform(get("/cart/items").session(session))
@@ -40,7 +40,7 @@ class CartControllerTest extends BaseControllerTest {
             .andExpect(model().attributeExists("items"))
             .andExpect(model().attributeExists("total"));
 
-        verify(cartService).getCartItems(any());
+        verify(cartService).getCartItems();
         verify(cartService).getCartTotal(cartItems);
     }
 
@@ -57,7 +57,7 @@ class CartControllerTest extends BaseControllerTest {
             .andExpect(status().is3xxRedirection())
             .andExpect(redirectedUrl("/items?search=&sort=NO&pageNumber=1&pageSize=5"));
 
-        verify(cartService).updateItemCount(any(), eq(1L), eq("PLUS"));
+        verify(cartService).updateItemCount(eq(1L), eq("PLUS"));
     }
 
     @Test
@@ -73,7 +73,7 @@ class CartControllerTest extends BaseControllerTest {
             .andExpect(status().is3xxRedirection())
             .andExpect(redirectedUrl("/items?search=test&sort=PRICE&pageNumber=2&pageSize=10"));
 
-        verify(cartService).updateItemCount(any(), eq(1L), eq("MINUS"));
+        verify(cartService).updateItemCount(eq(1L), eq("MINUS"));
     }
 
     @Test
@@ -89,13 +89,13 @@ class CartControllerTest extends BaseControllerTest {
             .andExpect(status().is3xxRedirection())
             .andExpect(redirectedUrl("/items/5"));
 
-        verify(cartService).updateItemCount(any(), eq(5L), eq("PLUS"));
+        verify(cartService).updateItemCount(eq(5L), eq("PLUS"));
     }
 
     @Test
     void updateCartFromCartPage_shouldUpdateAndReturnCartPage() throws Exception {
         List<CartItem> cartItems = List.of(new CartItem(testItem, 3));
-        when(cartService.getCartItems(any())).thenReturn(cartItems);
+        when(cartService.getCartItems()).thenReturn(cartItems);
         when(cartService.getCartTotal(cartItems)).thenReturn(BigDecimal.valueOf(30.0));
 
         mockMvc.perform(post("/cart/items")
@@ -107,8 +107,8 @@ class CartControllerTest extends BaseControllerTest {
             .andExpect(model().attributeExists("items"))
             .andExpect(model().attributeExists("total"));
 
-        verify(cartService).updateItemCount(any(), eq(1L), eq("PLUS"));
-        verify(cartService).getCartItems(any());
+        verify(cartService).updateItemCount(eq(1L), eq("PLUS"));
+        verify(cartService).getCartItems();
     }
 
     @Test
@@ -122,6 +122,6 @@ class CartControllerTest extends BaseControllerTest {
                 .session(session))
             .andExpect(status().is4xxClientError());
 
-        verify(cartService, never()).updateItemCount(any(), anyLong(), eq("PLUS"));
+        verify(cartService, never()).updateItemCount(anyLong(), eq("PLUS"));
     }
 }

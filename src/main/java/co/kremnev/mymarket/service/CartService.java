@@ -8,9 +8,10 @@ import java.math.BigDecimal;
 import java.util.List;
 
 public interface CartService {
-    SessionCart getCart(HttpSession session);
-    void removeItem(HttpSession session, long itemId);
-    void updateItemCount(HttpSession session, long itemId, String action);
-    List<CartItem> getCartItems(HttpSession session);
+    SessionCart getCart();
+    void removeItem(long itemId);
+    void updateItemCount(long itemId, String action);
+    List<CartItem> getCartItems();
     BigDecimal getCartTotal(List<CartItem> cartItems);
+    void clear();
 }
