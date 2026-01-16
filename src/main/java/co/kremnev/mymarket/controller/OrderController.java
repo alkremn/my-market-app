@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.reactive.result.view.Rendering;
+import org.springframework.web.server.WebSession;
+import reactor.core.publisher.Mono;
 
 @Controller
 @Validated
@@ -24,27 +27,28 @@ public class OrderController {
     }
 
     @GetMapping("/orders")
-    public String getOrders(Model model) {
-        var allOrders = orderService.getAllOrders();
-        model.addAttribute("orders", allOrders.stream().map(OrderDto::from).toList());
-        return "orders";
+    public Mono<Rendering> getOrders() {
+        return Mono.just(
+                Rendering.view("orders")
+                        .modelAttribute("orders", orderService.getAll().map(OrderDto::from))
+                        .build()
+        );
     }
 
     @GetMapping("/orders/{id}")
-    public String getOrderById(@PathVariable @Min(1) long id, @RequestParam(required = false) String newOrder, Model model) {
-        var orderOpt = orderService.getOrderById(id);
-        return orderOpt.map(order -> {
-            model.addAttribute("order", OrderDto.from(order));
-            return "order";
-            }).orElse("notfound");
+    public Mono<Rendering> getOrderById(@PathVariable @Min(1) long id, @RequestParam(required = false) String newOrder, Model model) {
+        return orderService.getById(id)
+                .map(order -> Rendering.view("order")
+                        .modelAttribute("order", OrderDto.from(order)).build())
+                .switchIfEmpty(Mono.just(Rendering.view("notfound").build()));
     }
 
     @PostMapping("/buy")
-    public String buy() {
-        var cartItems = cartService.getCartItems();
-        var order = orderService.createOrder(cartItems);
-        cartService.clear();
-
-        return "redirect:/orders/" + order.getId() + "?newOrder=true";
+    public Mono<String> buy(WebSession session) {
+        return cartService.getCartItems(session)
+                .collectList()
+                .flatMap(orderService::create)
+                .flatMap(order -> cartService.clear(session)
+                        .thenReturn("redirect:orders/" + order.getId() + "?newOrder=true"));
     }
 }

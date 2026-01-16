@@ -2,80 +2,79 @@ package co.kremnev.mymarket.service;
 
 import co.kremnev.mymarket.dto.CartItem;
 import co.kremnev.mymarket.dto.SessionCart;
-import co.kremnev.mymarket.model.Item;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.WebSession;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 public class CartServiceImpl implements CartService {
     private static final String CART_SESSION_KEY = "SHOPPING_CART";
-    private final HttpSession session;
     private final ItemService itemService;
 
-    public CartServiceImpl(HttpSession session, ItemService itemService) {
-        this.session = session;
+    public CartServiceImpl(ItemService itemService) {
         this.itemService = itemService;
     }
 
     @Override
-    public SessionCart getCart() {
-        SessionCart cart = (SessionCart) session.getAttribute(CART_SESSION_KEY);
+    public Mono<SessionCart> getCart(WebSession session) {
+        SessionCart cart = session.getAttribute(CART_SESSION_KEY);
         if (cart == null) {
             cart = new SessionCart();
-            session.setAttribute(CART_SESSION_KEY, cart);
+            session.getAttributes().put(CART_SESSION_KEY, cart);
         }
-        return cart;
+        return Mono.just(cart);
     }
 
     @Override
-    public void removeItem(long itemId) {
-        SessionCart cart = getCart();
-        cart.removeItem(itemId);
+    public Mono<Void> removeItem(WebSession session, long itemId) {
+        return getCart(session)
+                .doOnNext(cart -> cart.removeItem(itemId))
+                .then();
     }
 
     @Override
-    public void updateItemCount(long itemId, String action) {
-        SessionCart cart = getCart();
-        if (action.equals("DELETE")) {
-            cart.removeItem(itemId);
-            return;
-        }
-        var itemCount = cart.getItemCountById(itemId);
-        var newCount = itemCount + (action.equals("PLUS") ? 1 : -1);
-        if (newCount < 0) {
-            cart.removeItem(itemId);
-        } else {
-            cart.updateItem(itemId, newCount);
-        }
+    public Mono<Void> updateItemCount(WebSession session, long itemId, String action) {
+        return getCart(session)
+                .doOnNext(cart -> {
+                    if (action.equals("DELETE")) {
+                        cart.removeItem(itemId);
+                    } else {
+                        var itemCount = cart.getItemCountById(itemId);
+                        var newCount = itemCount + (action.equals("PLUS") ? 1 : -1);
+                        if (newCount < 0) {
+                            cart.removeItem(itemId);
+                        } else {
+                            cart.updateItem(itemId, newCount);
+                        }
+                    }
+                })
+                .then();
     }
 
     @Override
-    public List<CartItem> getCartItems() {
-        SessionCart cart = getCart();
-        if (cart.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        List<Item> items = itemService.getByIds(cart.getItems().keySet());
-        return items.stream()
-            .map(item -> new CartItem(item, cart.getItems().get(item.getId())))
-            .toList();
+    public Flux<CartItem> getCartItems(WebSession session) {
+        return getCart(session)
+                .flatMapMany(cart -> Flux.fromIterable(cart.getItems().entrySet()))
+                .flatMap(cartEntry ->
+                        itemService.getById(cartEntry.getKey())
+                        .map(item -> new CartItem(item, cartEntry.getValue())));
     }
 
     @Override
-    public BigDecimal getCartTotal(List<CartItem> cartItems) {
-        return cartItems.stream()
+    public Mono<BigDecimal> getCartTotal(WebSession session) {
+        return getCartItems(session)
             .map(CartItem::getSubtotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+            .reduce(BigDecimal.ZERO, BigDecimal::add)
+            .defaultIfEmpty(BigDecimal.ZERO);
     }
 
     @Override
-    public void clear() {
-        var cart = getCart();
-        cart.clear();
+    public Mono<Void> clear(WebSession session) {
+        return getCart(session)
+            .doOnNext(SessionCart::clear)
+                .then();
     }
 }

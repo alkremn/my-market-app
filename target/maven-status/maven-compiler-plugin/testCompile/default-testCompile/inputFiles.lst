@@ -1,0 +1,7 @@
+/Users/alexeykremnev/repos/java_prjs/my-market-app/src/test/java/co/kremnev/mymarket/controller/BaseControllerTest.java
+/Users/alexeykremnev/repos/java_prjs/my-market-app/src/test/java/co/kremnev/mymarket/controller/CartControllerTest.java
+/Users/alexeykremnev/repos/java_prjs/my-market-app/src/test/java/co/kremnev/mymarket/controller/OrderControllerTest.java
+/Users/alexeykremnev/repos/java_prjs/my-market-app/src/test/java/co/kremnev/mymarket/repository/ItemRepositoryTest.java
+/Users/alexeykremnev/repos/java_prjs/my-market-app/src/test/java/co/kremnev/mymarket/repository/OrderRepositoryTest.java
+/Users/alexeykremnev/repos/java_prjs/my-market-app/src/test/java/co/kremnev/mymarket/service/CartServiceTest.java
+/Users/alexeykremnev/repos/java_prjs/my-market-app/src/test/java/co/kremnev/mymarket/service/OrderServiceTest.java

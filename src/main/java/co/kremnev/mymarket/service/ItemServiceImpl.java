@@ -3,14 +3,11 @@ package co.kremnev.mymarket.service;
 import co.kremnev.mymarket.dto.Request.ItemsQueryRequest;
 import co.kremnev.mymarket.model.Item;
 import co.kremnev.mymarket.repository.ItemRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -23,23 +20,23 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public Page<Item> getAllItems(ItemsQueryRequest queryRequest) {
+    public Mono<Page<Item>> getAllItems(ItemsQueryRequest queryRequest) {
         Pageable pageable = createPageable(queryRequest);
 
         var search = queryRequest.getSearch();
         if (search.isEmpty()) {
-            return itemRepository.findAll(pageable);
+            return getItemsPageableStream(itemRepository.findAllBy(pageable), pageable);
         }
-        return itemRepository.findByTitleContainingIgnoreCase(search, pageable);
+        return getItemsPageableStream(itemRepository.findByTitleContainingIgnoreCase(search, pageable), pageable);
     }
 
     @Override
-    public Optional<Item> getById(long id) {
+    public Mono<Item> getById(Long id) {
         return itemRepository.findById(id);
     }
 
     @Override
-    public List<Item> getByIds(Set<Long> ids) {
+    public Flux<Item> getByIds(Set<Long> ids) {
         return itemRepository.findAllById(ids);
     }
 
@@ -51,5 +48,13 @@ public class ItemServiceImpl implements ItemService {
         };
 
         return PageRequest.of(queryRequest.getPageNumber() - 1, queryRequest.getPageSize(), sort);
+    }
+
+    private Mono<Page<Item>> getItemsPageableStream(Flux<Item> itemsStream, Pageable pageable) {
+        return itemsStream
+                .collectList()
+                .zipWith(itemRepository.count())
+                .map(objects ->
+                        new PageImpl<>(objects.getT1(), pageable, objects.getT2()));
     }
 }

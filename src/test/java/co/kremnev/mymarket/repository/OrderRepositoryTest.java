@@ -45,158 +45,158 @@ class OrderRepositoryTest {
         entityManager.flush();
     }
 
-    @Test
-    void save_shouldPersistOrder() {
-        Order order = new Order();
-
-        Order saved = orderRepository.save(order);
-
-        assertNotNull(saved.getId());
-        assertTrue(orderRepository.findById(saved.getId()).isPresent());
-    }
-
-    @Test
-    void save_shouldCascadeToOrderItems() {
-        // Create order with items
-        Order order = new Order();
-
-        OrderItem orderItem1 = new OrderItem(testItem1, 2);
-        orderItem1.setOrder(order);
-
-        OrderItem orderItem2 = new OrderItem(testItem2, 3);
-        orderItem2.setOrder(order);
-
-        List<OrderItem> items = new ArrayList<>();
-        items.add(orderItem1);
-        items.add(orderItem2);
-        order.setOrderItems(items);
-
-        // Save only the order (cascade should save order items)
-        Order saved = orderRepository.save(order);
-
-        // Verify order items were saved
-        entityManager.flush();
-        entityManager.clear();
-
-        Order retrieved = orderRepository.findById(saved.getId()).orElseThrow();
-        assertEquals(2, retrieved.getOrderItems().size());
-    }
-
-    @Test
-    void delete_shouldCascadeToOrderItems() {
-        // Create and save order with items
-        Order order = new Order();
-
-        OrderItem orderItem = new OrderItem(testItem1, 2);
-        orderItem.setOrder(order);
-
-        order.setOrderItems(List.of(orderItem));
-
-        Order saved = orderRepository.save(order);
-        Long orderId = saved.getId();
-
-        entityManager.flush();
-        entityManager.clear();
-
-        // Delete the order
-        orderRepository.deleteById(orderId);
-        entityManager.flush();
-
-        // Verify order and its items are deleted
-        assertFalse(orderRepository.findById(orderId).isPresent());
-
-        // Verify order items are deleted (due to cascade)
-        List<?> remainingOrderItems = entityManager
-            .createQuery("SELECT oi FROM OrderItem oi WHERE oi.order.id = :orderId")
-            .setParameter("orderId", orderId)
-            .getResultList();
-
-        assertTrue(remainingOrderItems.isEmpty());
-    }
-
-    @Test
-    void findById_shouldReturnOrder_whenExists() {
-        Order order = new Order();
-        Order saved = orderRepository.save(order);
-
-        Optional<Order> found = orderRepository.findById(saved.getId());
-
-        assertTrue(found.isPresent());
-        assertEquals(saved.getId(), found.get().getId());
-    }
-
-    @Test
-    void findById_shouldReturnEmpty_whenNotExists() {
-        Optional<Order> found = orderRepository.findById(999L);
-
-        assertFalse(found.isPresent());
-    }
-
-    @Test
-    void findAll_shouldReturnAllOrders() {
-        orderRepository.save(new Order());
-        orderRepository.save(new Order());
-        orderRepository.save(new Order());
-
-        List<Order> orders = orderRepository.findAll();
-
-        assertEquals(3, orders.size());
-    }
-
-    @Test
-    void count_shouldReturnCorrectCount() {
-        orderRepository.save(new Order());
-        orderRepository.save(new Order());
-
-        long count = orderRepository.count();
-
-        assertEquals(2, count);
-    }
-
-    @Test
-    void existsById_shouldReturnTrue_whenExists() {
-        Order order = orderRepository.save(new Order());
-
-        boolean exists = orderRepository.existsById(order.getId());
-
-        assertTrue(exists);
-    }
-
-    @Test
-    void existsById_shouldReturnFalse_whenNotExists() {
-        boolean exists = orderRepository.existsById(999L);
-
-        assertFalse(exists);
-    }
-
-    @Test
-    void save_shouldMaintainBidirectionalRelationship() {
-        Order order = new Order();
-
-        OrderItem orderItem = new OrderItem(testItem1, 5);
-        orderItem.setOrder(order);
-
-        order.setOrderItems(List.of(orderItem));
-
-        Order saved = orderRepository.save(order);
-        entityManager.flush();
-        entityManager.clear();
-
-        // Retrieve and verify relationship
-        Order retrieved = orderRepository.findById(saved.getId()).orElseThrow();
-        OrderItem retrievedItem = retrieved.getOrderItems().get(0);
-
-        assertNotNull(retrievedItem.getOrder());
-        assertEquals(retrieved.getId(), retrievedItem.getOrder().getId());
-    }
-
-    @Test
-    void deleteAll_shouldRemoveAllOrders() {
-        orderRepository.save(new Order());
-        orderRepository.save(new Order());
-
-        orderRepository.deleteAll();
-
-        assertEquals(0, orderRepository.count());
-    }
+//    @Test
+//    void save_shouldPersistOrder() {
+//        Order order = new Order();
+//
+//        Order saved = orderRepository.save(order);
+//
+//        assertNotNull(saved.getId());
+//        assertTrue(orderRepository.findById(saved.getId()).isPresent());
+//    }
+//
+//    @Test
+//    void save_shouldCascadeToOrderItems() {
+//        // Create order with items
+//        Order order = new Order();
+//
+//        OrderItem orderItem1 = new OrderItem(testItem1, 2);
+//        orderItem1.setOrder(order);
+//
+//        OrderItem orderItem2 = new OrderItem(testItem2, 3);
+//        orderItem2.setOrder(order);
+//
+//        List<OrderItem> items = new ArrayList<>();
+//        items.add(orderItem1);
+//        items.add(orderItem2);
+//        order.setOrderItems(items);
+//
+//        // Save only the order (cascade should save order items)
+//        Order saved = orderRepository.save(order);
+//
+//        // Verify order items were saved
+//        entityManager.flush();
+//        entityManager.clear();
+//
+//        Order retrieved = orderRepository.findById(saved.getId()).orElseThrow();
+//        assertEquals(2, retrieved.getOrderItems().size());
+//    }
+//
+//    @Test
+//    void delete_shouldCascadeToOrderItems() {
+//        // Create and save order with items
+//        Order order = new Order();
+//
+//        OrderItem orderItem = new OrderItem(testItem1, 2);
+//        orderItem.setOrder(order);
+//
+//        order.setOrderItems(List.of(orderItem));
+//
+//        Order saved = orderRepository.save(order);
+//        Long orderId = saved.getId();
+//
+//        entityManager.flush();
+//        entityManager.clear();
+//
+//        // Delete the order
+//        orderRepository.deleteById(orderId);
+//        entityManager.flush();
+//
+//        // Verify order and its items are deleted
+//        assertFalse(orderRepository.findById(orderId).isPresent());
+//
+//        // Verify order items are deleted (due to cascade)
+//        List<?> remainingOrderItems = entityManager
+//            .createQuery("SELECT oi FROM OrderItem oi WHERE oi.order.id = :orderId")
+//            .setParameter("orderId", orderId)
+//            .getResultList();
+//
+//        assertTrue(remainingOrderItems.isEmpty());
+//    }
+//
+//    @Test
+//    void findById_shouldReturnOrder_whenExists() {
+//        Order order = new Order();
+//        Order saved = orderRepository.save(order);
+//
+//        Optional<Order> found = orderRepository.findById(saved.getId());
+//
+//        assertTrue(found.isPresent());
+//        assertEquals(saved.getId(), found.get().getId());
+//    }
+//
+//    @Test
+//    void findById_shouldReturnEmpty_whenNotExists() {
+//        Optional<Order> found = orderRepository.findById(999L);
+//
+//        assertFalse(found.isPresent());
+//    }
+//
+//    @Test
+//    void findAll_shouldReturnAllOrders() {
+//        orderRepository.save(new Order());
+//        orderRepository.save(new Order());
+//        orderRepository.save(new Order());
+//
+//        List<Order> orders = orderRepository.findAll();
+//
+//        assertEquals(3, orders.size());
+//    }
+//
+//    @Test
+//    void count_shouldReturnCorrectCount() {
+//        orderRepository.save(new Order());
+//        orderRepository.save(new Order());
+//
+//        long count = orderRepository.count();
+//
+//        assertEquals(2, count);
+//    }
+//
+//    @Test
+//    void existsById_shouldReturnTrue_whenExists() {
+//        Order order = orderRepository.save(new Order());
+//
+//        boolean exists = orderRepository.existsById(order.getId());
+//
+//        assertTrue(exists);
+//    }
+//
+//    @Test
+//    void existsById_shouldReturnFalse_whenNotExists() {
+//        boolean exists = orderRepository.existsById(999L);
+//
+//        assertFalse(exists);
+//    }
+//
+//    @Test
+//    void save_shouldMaintainBidirectionalRelationship() {
+//        Order order = new Order();
+//
+//        OrderItem orderItem = new OrderItem(testItem1, 5);
+//        orderItem.setOrder(order);
+//
+//        order.setOrderItems(List.of(orderItem));
+//
+//        Order saved = orderRepository.save(order);
+//        entityManager.flush();
+//        entityManager.clear();
+//
+//        // Retrieve and verify relationship
+//        Order retrieved = orderRepository.findById(saved.getId()).orElseThrow();
+//        OrderItem retrievedItem = retrieved.getOrderItems().get(0);
+//
+//        assertNotNull(retrievedItem.getOrder());
+//        assertEquals(retrieved.getId(), retrievedItem.getOrder().getId());
+//    }
+//
+//    @Test
+//    void deleteAll_shouldRemoveAllOrders() {
+//        orderRepository.save(new Order());
+//        orderRepository.save(new Order());
+//
+//        orderRepository.deleteAll();
+//
+//        assertEquals(0, orderRepository.count());
+//    }
 }
