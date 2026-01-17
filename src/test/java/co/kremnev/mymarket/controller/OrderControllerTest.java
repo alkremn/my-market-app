@@ -3,155 +3,141 @@ package co.kremnev.mymarket.controller;
 import co.kremnev.mymarket.dto.CartItem;
 import co.kremnev.mymarket.model.Item;
 import co.kremnev.mymarket.model.Order;
-import co.kremnev.mymarket.model.OrderItem;
+import co.kremnev.mymarket.service.CartService;
+import co.kremnev.mymarket.service.OrderService;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.mock.web.MockHttpSession;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.web.server.WebSession;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@DisplayName("Order Controller Integration Tests")
-class OrderControllerTest extends BaseControllerTest {
+@WebFluxTest(OrderController.class)
+class OrderControllerTest {
 
-    private MockHttpSession session;
+    @Autowired
+    private WebTestClient webTestClient;
+
+    @MockitoBean
+    private OrderService orderService;
+
+    @MockitoBean
+    private CartService cartService;
+
     private Order testOrder;
     private Item testItem;
 
-//    @BeforeEach
-//    void setUp() {
-//        session = new MockHttpSession();
-//        testItem = Item.builder().id(1L).title("Test Item")
-//                .description("Description").price(BigDecimal.valueOf(10.0)).build();
-//        testOrder = createTestOrder(1L, List.of(
-//            createTestOrderItem(1L, testItem, 2)
-//        ));
-//    }
+    @BeforeEach
+    void setUp() {
+        testItem = Item.builder()
+                .id(1L)
+                .title("Test Item")
+                .description("Description")
+                .price(BigDecimal.valueOf(10.0))
+                .build();
 
-//    @Test
-//    void getOrders_shouldDisplayOrdersPage() throws Exception {
-//        List<Order> orders = List.of(testOrder);
-//        when(orderService.getAllOrders()).thenReturn(orders);
-//
-//        mockMvc.perform(get("/orders").session(session))
-//            .andExpect(status().isOk())
-//            .andExpect(view().name("orders"))
-//            .andExpect(model().attributeExists("orders"));
-//
-//        verify(orderService).getAllOrders();
-//    }
-//
-//    @Test
-//    void getOrderById_shouldDisplayOrderPage_whenOrderExists() throws Exception {
-//        when(orderService.getOrderById(1L)).thenReturn(Optional.of(testOrder));
-//
-//        mockMvc.perform(get("/orders/1").session(session))
-//            .andExpect(status().isOk())
-//            .andExpect(view().name("order"))
-//            .andExpect(model().attributeExists("order"));
-//
-//        verify(orderService).getOrderById(1L);
-//    }
-//
-//    @Test
-//    void getOrderById_shouldReturnNotFound_whenOrderDoesNotExist() throws Exception {
-//        when(orderService.getOrderById(999L)).thenReturn(Optional.empty());
-//
-//        mockMvc.perform(get("/orders/999").session(session))
-//            .andExpect(status().isOk())
-//            .andExpect(view().name("notfound"));
-//
-//        verify(orderService).getOrderById(999L);
-//    }
-//
-//    @Test
-//    void getOrderById_shouldAcceptNewOrderParameter() throws Exception {
-//        when(orderService.getOrderById(1L)).thenReturn(Optional.of(testOrder));
-//
-//        mockMvc.perform(get("/orders/1")
-//                .param("newOrder", "true")
-//                .session(session))
-//            .andExpect(status().isOk())
-//            .andExpect(view().name("order"));
-//    }
-//
-//    @Test
-//    void buy_shouldCreateOrderAndRedirect() throws Exception {
-//        List<CartItem> cartItems = List.of(new CartItem(testItem, 2));
-//        when(cartService.getCartItems()).thenReturn(cartItems);
-//        when(orderService.createOrder(anyList())).thenReturn(testOrder);
-//
-//        mockMvc.perform(post("/buy").session(session))
-//            .andExpect(status().is3xxRedirection())
-//            .andExpect(redirectedUrl("/orders/1?newOrder=true"));
-//
-//        verify(cartService).getCartItems();
-//        verify(orderService).createOrder(cartItems);
-//    }
-//
-//    @Test
-//    void buy_shouldHandleEmptyCart() throws Exception {
-//        when(cartService.getCartItems()).thenReturn(List.of());
-//        when(orderService.createOrder(anyList())).thenReturn(testOrder);
-//
-//        mockMvc.perform(post("/buy").session(session))
-//            .andExpect(status().is3xxRedirection())
-//            .andExpect(redirectedUrl("/orders/1?newOrder=true"));
-//
-//        verify(cartService).getCartItems();
-//        verify(orderService).createOrder(List.of());
-//    }
-//
-//    private OrderItem createTestOrderItem(long id, Item item, int quantity) {
-//        try {
-//            OrderItem orderItem = new OrderItem();
-//            var idField = OrderItem.class.getDeclaredField("id");
-//            idField.setAccessible(true);
-//            idField.set(orderItem, id);
-//
-//            var itemField = OrderItem.class.getDeclaredField("item");
-//            itemField.setAccessible(true);
-//            itemField.set(orderItem, item);
-//
-//            var quantityField = OrderItem.class.getDeclaredField("quantity");
-//            quantityField.setAccessible(true);
-//            quantityField.set(orderItem, quantity);
-//
-//            return orderItem;
-//        } catch (Exception e) {
-//            throw new RuntimeException(e);
-//        }
-//    }
-//
-//    private Order createTestOrder(long id, List<OrderItem> orderItems) {
-//        try {
-//            Order order = new Order();
-//            var idField = Order.class.getDeclaredField("id");
-//            idField.setAccessible(true);
-//            idField.set(order, id);
-//
-//            var orderItemsField = Order.class.getDeclaredField("orderItems");
-//            orderItemsField.setAccessible(true);
-//            orderItemsField.set(order, new ArrayList<>(orderItems));
-//
-//            var createdAtField = Order.class.getDeclaredField("createdAt");
-//            createdAtField.setAccessible(true);
-//            createdAtField.set(order, new Date());
-//
-//            return order;
-//        } catch (Exception e) {
-//            throw new RuntimeException(e);
-//        }
-//    }
+        testOrder = new Order();
+        testOrder.setId(1L);
+        testOrder.setCreatedAt(LocalDateTime.now());
+        testOrder.setOrderItems(List.of());
+    }
+
+    @Test
+    void getOrders_shouldDisplayOrdersPage() {
+        when(orderService.getAll()).thenReturn(Flux.just(testOrder));
+
+        webTestClient.get()
+                .uri("/orders")
+                .exchange()
+                .expectStatus().isOk();
+
+        verify(orderService).getAll();
+    }
+
+    @Test
+    void getOrderById_shouldDisplayOrderPage_whenOrderExists() {
+        when(orderService.getById(1L)).thenReturn(Mono.just(testOrder));
+
+        webTestClient.get()
+                .uri("/orders/1")
+                .exchange()
+                .expectStatus().isOk();
+
+        verify(orderService).getById(1L);
+    }
+
+    @Test
+    void getOrderById_shouldReturnNotFoundView_whenOrderDoesNotExist() {
+        when(orderService.getById(999L)).thenReturn(Mono.empty());
+
+        webTestClient.get()
+                .uri("/orders/999")
+                .exchange()
+                .expectStatus().isOk();  // Returns 200 with "notfound" view
+
+        verify(orderService).getById(999L);
+    }
+
+    @Test
+    void getOrderById_shouldAcceptNewOrderParameter() {
+        when(orderService.getById(1L)).thenReturn(Mono.just(testOrder));
+
+        webTestClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/orders/1")
+                        .queryParam("newOrder", "true")
+                        .build())
+                .exchange()
+                .expectStatus().isOk();
+
+        verify(orderService).getById(1L);
+    }
+
+    @Test
+    void buy_shouldCreateOrderAndRedirect() {
+        List<CartItem> cartItems = List.of(new CartItem(testItem, 2));
+
+        when(cartService.getCartItems(any(WebSession.class)))
+                .thenReturn(Flux.fromIterable(cartItems));
+        when(orderService.create(anyList())).thenReturn(Mono.just(testOrder));
+        when(cartService.clear(any(WebSession.class))).thenReturn(Mono.empty());
+
+        webTestClient.post()
+                .uri("/buy")
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .expectHeader().location("orders/1?newOrder=true");
+
+        verify(cartService).getCartItems(any(WebSession.class));
+        verify(orderService).create(anyList());
+        verify(cartService).clear(any(WebSession.class));
+    }
+
+    @Test
+    void buy_shouldClearCartAfterCreatingOrder() {
+        List<CartItem> cartItems = List.of(new CartItem(testItem, 1));
+
+        when(cartService.getCartItems(any(WebSession.class)))
+                .thenReturn(Flux.fromIterable(cartItems));
+        when(orderService.create(anyList())).thenReturn(Mono.just(testOrder));
+        when(cartService.clear(any(WebSession.class))).thenReturn(Mono.empty());
+
+        webTestClient.post()
+                .uri("/buy")
+                .exchange()
+                .expectStatus().is3xxRedirection();
+
+        verify(cartService).clear(any(WebSession.class));
+    }
 }

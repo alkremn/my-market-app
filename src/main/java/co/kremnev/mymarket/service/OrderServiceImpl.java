@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -31,7 +32,7 @@ public class OrderServiceImpl implements OrderService {
     public Flux<Order> getAll() {
         return orderRepository.findAll()
                 .flatMap(order -> orderItemRepository.findByOrderId(order.getId())
-                        .flatMap(orderItem -> itemRepository.findById(orderItem.getId())
+                        .flatMap(orderItem -> itemRepository.findById(orderItem.getItemId())
                                 .map(item -> {
                                     orderItem.setItem(item);
                                     return orderItem;
@@ -39,17 +40,19 @@ public class OrderServiceImpl implements OrderService {
                         )
                         .collectList()
                         .map(orderItems -> {
+                            orderItems.sort(Comparator.comparing(OrderItem::getItemId));
                             order.setOrderItems(orderItems);
                             return order;
                         })
-                );
+                )
+                .sort(Comparator.comparing(Order::getId));
     }
 
     @Override
     public Mono<Order> getById(long id) {
         return orderRepository.findById(id)
                 .flatMap(order -> orderItemRepository.findByOrderId(order.getId())
-                        .flatMap(orderItem -> itemRepository.findById(orderItem.getId())
+                        .flatMap(orderItem -> itemRepository.findById(orderItem.getItemId())
                                 .map(item -> {
                                     orderItem.setItem(item);
                                     return orderItem;

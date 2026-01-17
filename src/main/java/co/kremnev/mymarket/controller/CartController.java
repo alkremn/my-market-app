@@ -41,7 +41,7 @@ public class CartController {
             WebSession session
     ) {
         return cartService.updateItemCount(session, request.id(), request.action())
-                .then(Mono.just(Rendering.redirectTo("redirect:/items/" + id).build()));
+                .then(Mono.just(Rendering.redirectTo("/items/" + id).build()));
     }
 
     @GetMapping("/cart/items")

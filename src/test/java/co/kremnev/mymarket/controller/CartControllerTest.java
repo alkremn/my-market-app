@@ -3,125 +3,150 @@ package co.kremnev.mymarket.controller;
 import co.kremnev.mymarket.dto.CartItem;
 import co.kremnev.mymarket.model.Item;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.mock.web.MockHttpSession;
+import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
+import org.springframework.web.server.WebSession;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
-import java.util.List;
 
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@DisplayName("Cart Controller Integration Tests")
+@WebFluxTest(CartController.class)
 class CartControllerTest extends BaseControllerTest {
 
-    private MockHttpSession session;
     private Item testItem;
 
     @BeforeEach
     void setUp() {
-        session = new MockHttpSession();
         testItem = Item.builder().id(1L).title("Test Item").price(BigDecimal.valueOf(10.0)).build();
     }
 
-//    @Test
-//    void getCartItems_shouldDisplayCartPage() throws Exception {
-//        List<CartItem> cartItems = List.of(new CartItem(testItem, 2));
-//        when(cartService.getCartItems()).thenReturn(cartItems);
-//        when(cartService.getCartTotal(cartItems)).thenReturn(BigDecimal.valueOf(20.0));
-//
-//        mockMvc.perform(get("/cart/items").session(session))
-//            .andExpect(status().isOk())
-//            .andExpect(view().name("cart"))
-//            .andExpect(model().attributeExists("items"))
-//            .andExpect(model().attributeExists("total"));
-//
-//        verify(cartService).getCartItems();
-//        verify(cartService).getCartTotal(cartItems);
-//    }
-//
-//    @Test
-//    void addOrRemoveToCart_shouldUpdateCart_whenActionIsPlus() throws Exception {
-//        mockMvc.perform(post("/items")
-//                .param("id", "1")
-//                .param("action", "PLUS")
-//                .param("search", "")
-//                .param("sort", "NO")
-//                .param("pageNumber", "1")
-//                .param("pageSize", "5")
-//                .session(session))
-//            .andExpect(status().is3xxRedirection())
-//            .andExpect(redirectedUrl("/items?search=&sort=NO&pageNumber=1&pageSize=5"));
-//
-//        verify(cartService).updateItemCount(eq(1L), eq("PLUS"));
-//    }
-//
-//    @Test
-//    void addOrRemoveToCart_shouldUpdateCart_whenActionIsMinus() throws Exception {
-//        mockMvc.perform(post("/items")
-//                .param("id", "1")
-//                .param("action", "MINUS")
-//                .param("search", "test")
-//                .param("sort", "PRICE")
-//                .param("pageNumber", "2")
-//                .param("pageSize", "10")
-//                .session(session))
-//            .andExpect(status().is3xxRedirection())
-//            .andExpect(redirectedUrl("/items?search=test&sort=PRICE&pageNumber=2&pageSize=10"));
-//
-//        verify(cartService).updateItemCount(eq(1L), eq("MINUS"));
-//    }
-//
-//    @Test
-//    void addOrRemoveToCart_shouldRedirectToItemDetail_whenIdInPath() throws Exception {
-//        mockMvc.perform(post("/items/5")
-//                .param("id", "5")
-//                .param("action", "PLUS")
-//                .param("search", "")
-//                .param("sort", "NO")
-//                .param("pageNumber", "1")
-//                .param("pageSize", "5")
-//                .session(session))
-//            .andExpect(status().is3xxRedirection())
-//            .andExpect(redirectedUrl("/items/5"));
-//
-//        verify(cartService).updateItemCount(eq(5L), eq("PLUS"));
-//    }
-//
-//    @Test
-//    void updateCartFromCartPage_shouldUpdateAndReturnCartPage() throws Exception {
-//        List<CartItem> cartItems = List.of(new CartItem(testItem, 3));
-//        when(cartService.getCartItems()).thenReturn(cartItems);
-//        when(cartService.getCartTotal(cartItems)).thenReturn(BigDecimal.valueOf(30.0));
-//
-//        mockMvc.perform(post("/cart/items")
-//                .param("id", "1")
-//                .param("action", "PLUS")
-//                .session(session))
-//            .andExpect(status().isOk())
-//            .andExpect(view().name("cart"))
-//            .andExpect(model().attributeExists("items"))
-//            .andExpect(model().attributeExists("total"));
-//
-//        verify(cartService).updateItemCount(eq(1L), eq("PLUS"));
-//        verify(cartService).getCartItems();
-//    }
-//
-//    @Test
-//    void addOrRemoveToCart_shouldNotUpdateCart_whenNoAction() throws Exception {
-//        mockMvc.perform(post("/items")
-//                .param("id", "1")
-//                .param("search", "")
-//                .param("sort", "NO")
-//                .param("pageNumber", "1")
-//                .param("pageSize", "5")
-//                .session(session))
-//            .andExpect(status().is4xxClientError());
-//
-//        verify(cartService, never()).updateItemCount(anyLong(), eq("PLUS"));
-//    }
+    @Test
+    void getCartItems_shouldDisplayCartPage() throws Exception {
+        Flux<CartItem> cartItems = Flux.just(new CartItem(testItem, 2));
+        when(cartService.getCartItems(any(WebSession.class))).thenReturn(cartItems);
+        when(cartService.getCartTotal(any(WebSession.class))).thenReturn(Mono.just(BigDecimal.valueOf(20.0)));
+
+        webTestClient.get()
+                .uri("/cart/items")
+                .exchange()
+                .expectStatus().isOk();
+
+        verify(cartService).getCartItems(any(WebSession.class));
+    }
+
+    @Test
+    void addOrRemoveToCart_shouldUpdateCart_whenActionIsPlus() throws Exception {
+        when(cartService.updateItemCount(any(WebSession.class), eq(1L), eq("PLUS")))
+                .thenReturn(Mono.empty());
+
+        webTestClient.post()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/items")
+                        .queryParam("id", "1")
+                        .queryParam("action", "PLUS")
+                        .queryParam("search", "")
+                        .queryParam("sort", "NO")
+                        .queryParam("pageNumber", "1")
+                        .queryParam("pageSize", "5")
+                        .build()
+                )
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .expectHeader().location("/items?search=&sort=NO&pageNumber=1&pageSize=5");
+
+        verify(cartService).updateItemCount(any(WebSession.class), eq(1L), eq("PLUS"));
+    }
+
+    @Test
+    void addOrRemoveToCart_shouldUpdateCart_whenActionIsMinus() throws Exception {
+        when(cartService.updateItemCount(any(WebSession.class), eq(1L), eq("MINUS")))
+                .thenReturn(Mono.empty());
+
+        webTestClient.post()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/items")
+                        .queryParam("id", "1")
+                        .queryParam("action", "MINUS")
+                        .queryParam("search", "test")
+                        .queryParam("sort", "PRICE")
+                        .queryParam("pageNumber", "2")
+                        .queryParam("pageSize", "10")
+                        .build()
+                )
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .expectHeader().location("/items?search=test&sort=PRICE&pageNumber=2&pageSize=10");
+
+        verify(cartService).updateItemCount(any(WebSession.class),eq(1L), eq("MINUS"));
+    }
+
+    @Test
+    void addOrRemoveToCart_shouldRedirectToItemDetail_whenIdInPath() throws Exception {
+        when(cartService.updateItemCount(any(WebSession.class), eq(5L), eq("PLUS")))
+                .thenReturn(Mono.empty());
+
+        webTestClient.post()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/items/5")
+                        .queryParam("id", "5")
+                        .queryParam("action", "PLUS")
+                        .queryParam("search", "")
+                        .queryParam("sort", "NO")
+                        .queryParam("pageNumber", "1")
+                        .queryParam("pageSize", "5")
+                        .build()
+                )
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .expectHeader().location("/items/5");
+
+        verify(cartService).updateItemCount(any(WebSession.class),eq(5L), eq("PLUS"));
+    }
+
+    @Test
+    void updateCartFromCartPage_shouldUpdateAndReturnCartPage() throws Exception {
+        Flux<CartItem> cartItems = Flux.just(new CartItem(testItem, 3));
+
+        when(cartService.updateItemCount(any(WebSession.class), eq(1L), eq("PLUS")))
+                .thenReturn(Mono.empty());
+        when(cartService.getCartItems(any(WebSession.class)))
+                .thenReturn(cartItems);
+        when(cartService.getCartTotal(any(WebSession.class)))
+                .thenReturn(Mono.just(BigDecimal.valueOf(30.0)));
+
+        webTestClient.post()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/cart/items")
+                        .queryParam("id", "1")
+                        .queryParam("action", "PLUS")
+                        .build())
+                .exchange()
+                .expectStatus().isOk();
+
+        verify(cartService).updateItemCount(any(WebSession.class), eq(1L), eq("PLUS"));
+        verify(cartService).getCartItems(any(WebSession.class));
+    }
+
+    @Test
+    void addOrRemoveToCart_shouldNotUpdateCart_whenNoAction() throws Exception {
+        webTestClient.post()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/items")
+                        .queryParam("id", "1")
+                        .queryParam("search", "")
+                        .queryParam("sort", "NO")
+                        .queryParam("pageNumber", "1")
+                        .queryParam("pageSize", "5")
+                        .build()
+                )
+                .exchange()
+                .expectStatus().is4xxClientError();
+
+        verify(cartService, never()).updateItemCount(any(WebSession.class), anyLong(), eq("PLUS"));
+    }
 }

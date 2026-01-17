@@ -13,11 +13,11 @@ public record OrderDto(
     public static OrderDto from(Order order) {
         var orderItems = order.getOrderItems();
         var totalSum = orderItems.stream()
-                .map(x -> x.getItem().getPrice().multiply(new BigDecimal(x.getQuantity())))
+                .map(x -> x.getPrice().multiply(new BigDecimal(x.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         var items = orderItems.stream()
-                .map(orderItem-> ItemDto.from(orderItem.getItem(), orderItem.getQuantity())).toList();
+                .map(orderItem-> ItemDto.from(orderItem, orderItem.getQuantity())).toList();
         return new OrderDto(order.getId(), items, totalSum);
     }
 }
