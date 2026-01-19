@@ -1,6 +1,7 @@
 package co.kremnev.mymarket.controller;
 
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.annotation.Validated;
@@ -9,51 +10,69 @@ import org.springframework.web.bind.annotation.*;
 import co.kremnev.mymarket.dto.ItemDto;
 import co.kremnev.mymarket.dto.Request.CartCommandRequest;
 import co.kremnev.mymarket.service.CartService;
+import org.springframework.web.reactive.result.view.Rendering;
+import org.springframework.web.server.WebSession;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Controller
 @Validated
 public class CartController {
     private final CartService cartService;
 
+    @Autowired
     public CartController(CartService cartService) {
         this.cartService = cartService;
     }
 
     @PostMapping("/items")
-    public String addOrRemoveItemInCart(@ModelAttribute @Valid CartCommandRequest request) {
-        cartService.updateItemCount(request.id(), request.action());
-
-        return "redirect:/items?search=" + request.search() +
-                "&sort=" + request.sort() +
-                "&pageNumber=" + request.pageNumber() +
-                "&pageSize=" + request.pageSize();
+    public Mono<Rendering> addOrRemoveItemInCart(@ModelAttribute @Valid CartCommandRequest request,
+                                                 WebSession session) {
+        return cartService.updateItemCount(session, request.id(), request.action())
+                .then(Mono.just(Rendering.redirectTo(
+                        "/items?search=" + request.search() +
+                                "&sort=" + request.sort() +
+                                "&pageNumber=" + request.pageNumber() +
+                                "&pageSize=" + request.pageSize()).build()));
     }
 
     @PostMapping("/items/{id}")
-    public String addOrRemoveItemInCartById(
+    public Mono<Rendering> addOrRemoveItemInCartById(
             @PathVariable(required = false) String id,
-            @ModelAttribute @Valid CartCommandRequest request
+            @ModelAttribute @Valid CartCommandRequest request,
+            WebSession session
     ) {
-        cartService.updateItemCount(request.id(), request.action());
-        return "redirect:/items/" + id;
+        return cartService.updateItemCount(session, request.id(), request.action())
+                .then(Mono.just(Rendering.redirectTo("/items/" + id).build()));
     }
 
     @GetMapping("/cart/items")
-    public String getItems(Model model) {
-        var cartItems = cartService.getCartItems();
-        model.addAttribute("items", cartItems.stream()
-                .map(item -> ItemDto.from(item.item(), item.quantity())).toList());
-        model.addAttribute("total", cartService.getCartTotal(cartItems));
-        return "cart";
+    public Mono<Rendering> getItems(WebSession session) {
+        Flux<ItemDto> itemsFlux = cartService.getCartItems(session)
+                .map(cartItem -> ItemDto.from(cartItem.item(), cartItem.quantity()));
+
+        return Mono.zip(
+                itemsFlux.collectList(),
+                cartService.getCartTotal(session)
+                ).map(tuple -> Rendering.view("cart")
+                        .modelAttribute("items", tuple.getT1())
+                        .modelAttribute("total", tuple.getT2())
+                        .build());
     }
 
     @PostMapping("/cart/items")
-    public String getItems(@RequestParam long id, @RequestParam String action, Model model) {
-        cartService.updateItemCount(id,  action);
-        var cartItems = cartService.getCartItems();
-        model.addAttribute("items", cartItems.stream()
-                .map(item -> ItemDto.from(item.item(), item.quantity())).toList());
-        model.addAttribute("total", cartService.getCartTotal(cartItems));
-        return "cart";
+    public Mono<Rendering> updateItems(@RequestParam Long id, @RequestParam String action,
+                                    Model model, WebSession session) {
+        Flux<ItemDto> itemsFlux = cartService.updateItemCount(session, id,  action)
+                .thenMany(cartService.getCartItems(session))
+                .map(cartItem -> ItemDto.from(cartItem.item(), cartItem.quantity()));
+
+        return Mono.zip(
+                itemsFlux.collectList(),
+                cartService.getCartTotal(session)
+            ).map(tuple -> Rendering.view("cart")
+                .modelAttribute("items", tuple.getT1())
+                .modelAttribute("total", tuple.getT2())
+                .build());
     }
 }

@@ -4,21 +4,25 @@ import co.kremnev.mymarket.dto.CartItem;
 import co.kremnev.mymarket.model.Item;
 import co.kremnev.mymarket.model.Order;
 import co.kremnev.mymarket.model.OrderItem;
+import co.kremnev.mymarket.repository.ItemRepository;
+import co.kremnev.mymarket.repository.OrderItemRepository;
 import co.kremnev.mymarket.repository.OrderRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -26,6 +30,12 @@ class OrderServiceTest {
 
     @Mock
     private OrderRepository orderRepository;
+
+    @Mock
+    private OrderItemRepository orderItemRepository;
+
+    @Mock
+    private ItemRepository itemRepository;
 
     @InjectMocks
     private OrderServiceImpl orderService;
@@ -40,114 +50,159 @@ class OrderServiceTest {
         testItem2 = Item.builder().id(2L).title("Item 2").description("Description 2").price(BigDecimal.valueOf(20.0)).build();
 
         cartItems = List.of(
-            new CartItem(testItem1, 2),
-            new CartItem(testItem2, 3)
+                new CartItem(testItem1, 2),
+                new CartItem(testItem2, 3)
         );
     }
 
     @Test
-    void getAllOrders_shouldReturnAllOrders() {
-        List<Order> expectedOrders = List.of(new Order(), new Order());
-        when(orderRepository.findAll()).thenReturn(expectedOrders);
+    void getAll_shouldReturnAllOrders() {
+        Order order1 = new Order();
+        order1.setId(1L);
+        Order order2 = new Order();
+        order2.setId(2L);
 
-        List<Order> result = orderService.getAllOrders();
+        when(orderRepository.findAll()).thenReturn(Flux.just(order1, order2));
+        when(orderItemRepository.findByOrderId(1L)).thenReturn(Flux.empty());
+        when(orderItemRepository.findByOrderId(2L)).thenReturn(Flux.empty());
 
-        assertEquals(2, result.size());
-        assertSame(expectedOrders, result);
+        StepVerifier.create(orderService.getAll())
+                .expectNextCount(2)
+                .verifyComplete();
+
         verify(orderRepository).findAll();
     }
 
     @Test
-    void getOrderById_shouldReturnOrder_whenExists() {
-        Order expectedOrder = new Order();
-        when(orderRepository.findById(1L)).thenReturn(Optional.of(expectedOrder));
+    void getAll_shouldReturnOrdersWithItems() {
+        Order order = new Order();
+        order.setId(1L);
 
-        Optional<Order> result = orderService.getOrderById(1L);
+        OrderItem orderItem = new OrderItem(testItem1, 2);
+        orderItem.setId(1L);
 
-        assertTrue(result.isPresent());
-        assertSame(expectedOrder, result.get());
+        when(orderRepository.findAll()).thenReturn(Flux.just(order));
+        when(orderItemRepository.findByOrderId(1L)).thenReturn(Flux.just(orderItem));
+        when(itemRepository.findById(1L)).thenReturn(Mono.just(testItem1));
+
+        StepVerifier.create(orderService.getAll())
+                .assertNext(o -> {
+                    assertEquals(1L, o.getId());
+                    assertNotNull(o.getOrderItems());
+                    assertEquals(1, o.getOrderItems().size());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void getById_shouldReturnOrder_whenExists() {
+        Order order = new Order();
+        order.setId(1L);
+
+        when(orderRepository.findById(1L)).thenReturn(Mono.just(order));
+        when(orderItemRepository.findByOrderId(1L)).thenReturn(Flux.empty());
+
+        StepVerifier.create(orderService.getById(1L))
+                .assertNext(o -> assertEquals(1L, o.getId()))
+                .verifyComplete();
+
         verify(orderRepository).findById(1L);
     }
 
     @Test
-    void getOrderById_shouldReturnEmpty_whenNotExists() {
-        when(orderRepository.findById(999L)).thenReturn(Optional.empty());
+    void getById_shouldReturnEmpty_whenNotExists() {
+        when(orderRepository.findById(999L)).thenReturn(Mono.empty());
 
-        Optional<Order> result = orderService.getOrderById(999L);
+        StepVerifier.create(orderService.getById(999L))
+                .verifyComplete();
 
-        assertFalse(result.isPresent());
         verify(orderRepository).findById(999L);
     }
 
     @Test
-    void createOrder_shouldCreateOrderWithItems() {
-        ArgumentCaptor<Order> orderCaptor = ArgumentCaptor.forClass(Order.class);
-        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    void getById_shouldReturnOrderWithItems() {
+        Order order = new Order();
+        order.setId(1L);
 
-        Order result = orderService.createOrder(cartItems);
+        OrderItem orderItem = new OrderItem(testItem1, 2);
+        orderItem.setId(1L);
 
-        verify(orderRepository).save(orderCaptor.capture());
-        Order savedOrder = orderCaptor.getValue();
+        when(orderRepository.findById(1L)).thenReturn(Mono.just(order));
+        when(orderItemRepository.findByOrderId(1L)).thenReturn(Flux.just(orderItem));
+        when(itemRepository.findById(1L)).thenReturn(Mono.just(testItem1));
 
-        assertNotNull(savedOrder);
-        assertNotNull(savedOrder.getOrderItems());
-        assertEquals(2, savedOrder.getOrderItems().size());
+        StepVerifier.create(orderService.getById(1L))
+                .assertNext(o -> {
+                    assertEquals(1L, o.getId());
+                    assertNotNull(o.getOrderItems());
+                    assertEquals(1, o.getOrderItems().size());
+                    assertEquals(testItem1, o.getOrderItems().get(0).getItem());
+                })
+                .verifyComplete();
     }
 
     @Test
-    void createOrder_shouldSetCorrectQuantitiesAndItems() {
-        ArgumentCaptor<Order> orderCaptor = ArgumentCaptor.forClass(Order.class);
-        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    void create_shouldCreateOrderWithItems() {
+        Order savedOrder = new Order();
+        savedOrder.setId(1L);
 
-        orderService.createOrder(cartItems);
+        when(orderRepository.save(any(Order.class))).thenReturn(Mono.just(savedOrder));
+        when(orderItemRepository.saveAll(anyList())).thenReturn(Flux.fromIterable(
+                List.of(
+                        new OrderItem(testItem1, 2),
+                        new OrderItem(testItem2, 3)
+                )
+        ));
 
-        verify(orderRepository).save(orderCaptor.capture());
-        Order savedOrder = orderCaptor.getValue();
-        List<OrderItem> orderItems = savedOrder.getOrderItems();
+        StepVerifier.create(orderService.create(cartItems))
+                .assertNext(order -> {
+                    assertNotNull(order);
+                    assertEquals(1L, order.getId());
+                    assertNotNull(order.getOrderItems());
+                    assertEquals(2, order.getOrderItems().size());
+                })
+                .verifyComplete();
 
-        OrderItem orderItem1 = orderItems.stream()
-            .filter(oi -> oi.getItem().getId() == 1L)
-            .findFirst()
-            .orElseThrow();
-        assertEquals(2, orderItem1.getQuantity());
-        assertEquals(testItem1, orderItem1.getItem());
-
-        OrderItem orderItem2 = orderItems.stream()
-            .filter(oi -> oi.getItem().getId() == 2L)
-            .findFirst()
-            .orElseThrow();
-        assertEquals(3, orderItem2.getQuantity());
-        assertEquals(testItem2, orderItem2.getItem());
+        verify(orderRepository).save(any(Order.class));
+        verify(orderItemRepository).saveAll(anyList());
     }
 
     @Test
-    void createOrder_shouldSetBidirectionalRelationship() {
-        ArgumentCaptor<Order> orderCaptor = ArgumentCaptor.forClass(Order.class);
-        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    void create_shouldRejectNullCartItems() {
+        StepVerifier.create(orderService.create(null))
+                .expectError(IllegalArgumentException.class)
+                .verify();
 
-        orderService.createOrder(cartItems);
-
-        verify(orderRepository).save(orderCaptor.capture());
-        Order savedOrder = orderCaptor.getValue();
-
-        for (OrderItem orderItem : savedOrder.getOrderItems()) {
-            assertNotNull(orderItem.getOrder());
-            assertSame(savedOrder, orderItem.getOrder());
-        }
+        verify(orderRepository, never()).save(any());
     }
 
     @Test
-    void createOrder_shouldHandleEmptyCart() {
-        ArgumentCaptor<Order> orderCaptor = ArgumentCaptor.forClass(Order.class);
-        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    void create_shouldRejectEmptyCartItems() {
+        StepVerifier.create(orderService.create(List.of()))
+                .expectErrorMatches(e -> e instanceof IllegalArgumentException
+                        && e.getMessage().contains("must not be null or empty"))
+                .verify();
 
-        Order result = orderService.createOrder(List.of());
+        verify(orderRepository, never()).save(any());
+    }
 
-        verify(orderRepository).save(orderCaptor.capture());
-        Order savedOrder = orderCaptor.getValue();
+    @Test
+    void create_shouldSetCorrectQuantities() {
+        Order savedOrder = new Order();
+        savedOrder.setId(1L);
 
-        assertNotNull(savedOrder);
-        assertNotNull(savedOrder.getOrderItems());
-        assertTrue(savedOrder.getOrderItems().isEmpty());
+        OrderItem savedItem1 = new OrderItem(testItem1, 2);
+        OrderItem savedItem2 = new OrderItem(testItem2, 3);
+
+        when(orderRepository.save(any(Order.class))).thenReturn(Mono.just(savedOrder));
+        when(orderItemRepository.saveAll(anyList())).thenReturn(Flux.just(savedItem1, savedItem2));
+
+        StepVerifier.create(orderService.create(cartItems))
+                .assertNext(order -> {
+                    List<OrderItem> items = order.getOrderItems();
+                    assertTrue(items.stream().anyMatch(oi -> oi.getQuantity() == 2));
+                    assertTrue(items.stream().anyMatch(oi -> oi.getQuantity() == 3));
+                })
+                .verifyComplete();
     }
 }

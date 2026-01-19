@@ -1,8 +1,8 @@
 # My Market App
 
-Веб-приложение интернет-магазина, разработанное на Spring Boot с использованием архитектуры MVC.
+Веб-приложение интернет-магазина, разработанное на Spring Boot с использованием реактивной архитектуры WebFlux.
 
-## 📋 Описание
+## Описание
 
 My Market App — это полнофункциональное приложение электронной коммерции, которое позволяет пользователям:
 - Просматривать каталог товаров с поиском и сортировкой
@@ -11,25 +11,44 @@ My Market App — это полнофункциональное приложен
 - Оформлять заказы
 - Просматривать историю заказов
 
-## 🚀 Технологии
+## Технологии
 
 ### Backend
 - **Spring Boot 4.0.1** - основной фреймворк
-- **Spring Data JPA** - работа с базой данных
-- **Spring Web MVC** - веб-слой
+- **Spring WebFlux** - реактивный веб-слой
+- **Spring Data R2DBC** - реактивная работа с базой данных
+- **Project Reactor** - реактивные потоки (Mono/Flux)
 - **Thymeleaf** - шаблонизатор для представлений
 
 ### База данных
 - **PostgreSQL** - production база данных
-- **H2** - in-memory база данных для тестов
+- **R2DBC PostgreSQL** - реактивный драйвер
 
 ### Тестирование
 - **JUnit 5** - тестовый фреймворк
 - **Mockito** - мокирование зависимостей
-- **Spring Boot Test** - интеграционные тесты
+- **Reactor Test** - тестирование реактивных потоков (StepVerifier)
+- **Testcontainers** - запуск PostgreSQL в Docker для интеграционных тестов
+- **WebTestClient** - тестирование WebFlux контроллеров
 
 ### Сборка
-- **Gradle (Kotlin DSL)** - система сборки
+- **Maven** - система сборки
+
+## Архитектура
+
+### Реактивный стек
+
+Приложение использует полностью реактивный стек:
+
+```
+Controller (WebFlux)
+    ↓ Mono/Flux
+Service Layer
+    ↓ Mono/Flux
+Repository (R2DBC)
+    ↓ Reactive Streams
+PostgreSQL
+```
 
 ### Основные компоненты
 
@@ -40,21 +59,21 @@ My Market App — это полнофункциональное приложен
 
 #### Сервисы
 - `ItemService` - бизнес-логика работы с товарами
-- `CartService` - бизнес-логика корзины (сессия)
+- `CartService` - бизнес-логика корзины (WebSession)
 - `OrderService` - бизнес-логика заказов
 
 #### Репозитории
-- `ItemRepository` - доступ к данным товаров
-- `OrderRepository` - доступ к данным заказов
+- `ItemRepository` - реактивный доступ к данным товаров
+- `OrderRepository` - реактивный доступ к данным заказов
+- `OrderItemRepository` - реактивный доступ к позициям заказов
 
-## 🛠️ Установка и запуск
+## Установка и запуск
 
 ### Требования
 
 - Java 21 или выше
-- Docker и Docker Compose (для быстрого запуска) **ИЛИ**
-- PostgreSQL 12 или выше (для ручной настройки)
-- Gradle 9.2+ (включен wrapper)
+- Docker и Docker Compose
+- Maven 3.9+ (включен wrapper)
 
 ### 1. Настройка базы данных
 
@@ -70,25 +89,36 @@ docker-compose -f docker/docker-compose.yml up -d
 
 ### 2. Запуск приложения
 
-#### С помощью Gradle
+#### С помощью Maven
 
 ```bash
-./gradlew bootRun
+./mvnw spring-boot:run
 ```
 
 #### Сборка JAR и запуск
 
 ```bash
-./gradlew build
-java -jar build/libs/my-market-app-0.0.1-SNAPSHOT.jar
+./mvnw package
+java -jar target/MyMarket-0.0.1-SNAPSHOT.jar
 ```
 
 Приложение будет доступно по адресу: **http://localhost:8080**
 
-## 🧪 Запуск тестов
+## Тестирование
+
+### Требования для тестов
+
+- **Docker** - обязательно для запуска тестов (Testcontainers)
 
 ### Запуск всех тестов
 
 ```bash
-./gradlew test
+./mvnw test
+```
+
+### Запуск конкретного теста
+
+```bash
+./mvnw test -Dtest=ItemRepositoryTest
+./mvnw test -Dtest=OrderControllerTest
 ```

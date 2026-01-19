@@ -2,16 +2,18 @@ package co.kremnev.mymarket.service;
 
 import co.kremnev.mymarket.dto.CartItem;
 import co.kremnev.mymarket.dto.SessionCart;
-import jakarta.servlet.http.HttpSession;
+import org.springframework.web.server.WebSession;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 public interface CartService {
-    SessionCart getCart();
-    void removeItem(long itemId);
-    void updateItemCount(long itemId, String action);
-    List<CartItem> getCartItems();
-    BigDecimal getCartTotal(List<CartItem> cartItems);
-    void clear();
+    Mono<SessionCart> getCart(WebSession session);
+    Mono<Void> removeItem(WebSession session, long itemId);
+    Mono<Void> updateItemCount(WebSession session, long itemId, String action);
+    Flux<CartItem> getCartItems(WebSession session);
+    Mono<BigDecimal> getCartTotal(WebSession session);
+    Mono<Void> clear(WebSession session);
 }

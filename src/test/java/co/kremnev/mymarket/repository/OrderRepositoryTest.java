@@ -1,202 +1,142 @@
 package co.kremnev.mymarket.repository;
 
-import co.kremnev.mymarket.model.Item;
 import co.kremnev.mymarket.model.Order;
-import co.kremnev.mymarket.model.OrderItem;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import jakarta.persistence.EntityManager;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.boot.data.r2dbc.test.autoconfigure.DataR2dbcTest;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import reactor.test.StepVerifier;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
-@Transactional
-@DisplayName("OrderRepository Tests")
+@DataR2dbcTest
+@Testcontainers
 class OrderRepositoryTest {
 
     @Autowired
     private OrderRepository orderRepository;
 
-    @Autowired
-    private EntityManager entityManager;
-
-    private Item testItem1;
-    private Item testItem2;
-
     @BeforeEach
     void setUp() {
-        orderRepository.deleteAll();
+        orderRepository.deleteAll().block();
+    }
 
-        // Create test items
-        testItem1 = Item.builder().title("Test Item 1").description("Description 1").price(BigDecimal.valueOf(10.0)).build();
-        testItem2 = Item.builder().title("Test Item 2").description("Description 2").price(BigDecimal.valueOf(20.0)).build();
-
-        entityManager.persist(testItem1);
-        entityManager.persist(testItem2);
-        entityManager.flush();
+    private Order createOrder() {
+        var now = LocalDateTime.now();
+        Order order = new Order();
+        order.setCreatedAt(now);
+        order.setUpdatedAt(now);
+        return order;
     }
 
     @Test
     void save_shouldPersistOrder() {
-        Order order = new Order();
+        Order order = createOrder();
 
-        Order saved = orderRepository.save(order);
-
-        assertNotNull(saved.getId());
-        assertTrue(orderRepository.findById(saved.getId()).isPresent());
-    }
-
-    @Test
-    void save_shouldCascadeToOrderItems() {
-        // Create order with items
-        Order order = new Order();
-
-        OrderItem orderItem1 = new OrderItem(testItem1, 2);
-        orderItem1.setOrder(order);
-
-        OrderItem orderItem2 = new OrderItem(testItem2, 3);
-        orderItem2.setOrder(order);
-
-        List<OrderItem> items = new ArrayList<>();
-        items.add(orderItem1);
-        items.add(orderItem2);
-        order.setOrderItems(items);
-
-        // Save only the order (cascade should save order items)
-        Order saved = orderRepository.save(order);
-
-        // Verify order items were saved
-        entityManager.flush();
-        entityManager.clear();
-
-        Order retrieved = orderRepository.findById(saved.getId()).orElseThrow();
-        assertEquals(2, retrieved.getOrderItems().size());
-    }
-
-    @Test
-    void delete_shouldCascadeToOrderItems() {
-        // Create and save order with items
-        Order order = new Order();
-
-        OrderItem orderItem = new OrderItem(testItem1, 2);
-        orderItem.setOrder(order);
-
-        order.setOrderItems(List.of(orderItem));
-
-        Order saved = orderRepository.save(order);
-        Long orderId = saved.getId();
-
-        entityManager.flush();
-        entityManager.clear();
-
-        // Delete the order
-        orderRepository.deleteById(orderId);
-        entityManager.flush();
-
-        // Verify order and its items are deleted
-        assertFalse(orderRepository.findById(orderId).isPresent());
-
-        // Verify order items are deleted (due to cascade)
-        List<?> remainingOrderItems = entityManager
-            .createQuery("SELECT oi FROM OrderItem oi WHERE oi.order.id = :orderId")
-            .setParameter("orderId", orderId)
-            .getResultList();
-
-        assertTrue(remainingOrderItems.isEmpty());
+        StepVerifier.create(orderRepository.save(order))
+                .assertNext(saved -> {
+                    assertNotNull(saved.getId());
+                    assertNotNull(saved.getCreatedAt());
+                })
+                .verifyComplete();
     }
 
     @Test
     void findById_shouldReturnOrder_whenExists() {
-        Order order = new Order();
-        Order saved = orderRepository.save(order);
+        Order order = createOrder();
 
-        Optional<Order> found = orderRepository.findById(saved.getId());
-
-        assertTrue(found.isPresent());
-        assertEquals(saved.getId(), found.get().getId());
+        StepVerifier.create(
+                orderRepository.save(order)
+                        .flatMap(saved -> orderRepository.findById(saved.getId()))
+        )
+                .assertNext(found -> assertNotNull(found.getId()))
+                .verifyComplete();
     }
 
     @Test
     void findById_shouldReturnEmpty_whenNotExists() {
-        Optional<Order> found = orderRepository.findById(999L);
-
-        assertFalse(found.isPresent());
+        StepVerifier.create(orderRepository.findById(999L))
+                .verifyComplete();
     }
 
     @Test
     void findAll_shouldReturnAllOrders() {
-        orderRepository.save(new Order());
-        orderRepository.save(new Order());
-        orderRepository.save(new Order());
+        Order order1 = createOrder();
+        Order order2 = createOrder();
+        Order order3 = createOrder();
 
-        List<Order> orders = orderRepository.findAll();
+        orderRepository.saveAll(java.util.List.of(order1, order2, order3))
+                .collectList()
+                .block();
 
-        assertEquals(3, orders.size());
+        StepVerifier.create(orderRepository.findAll().collectList())
+                .assertNext(orders -> assertEquals(3, orders.size()))
+                .verifyComplete();
     }
 
     @Test
     void count_shouldReturnCorrectCount() {
-        orderRepository.save(new Order());
-        orderRepository.save(new Order());
+        Order order1 = createOrder();
+        Order order2 = createOrder();
 
-        long count = orderRepository.count();
+        orderRepository.saveAll(java.util.List.of(order1, order2))
+                .collectList()
+                .block();
 
-        assertEquals(2, count);
+        StepVerifier.create(orderRepository.count())
+                .assertNext(count -> assertEquals(2, count))
+                .verifyComplete();
     }
 
     @Test
     void existsById_shouldReturnTrue_whenExists() {
-        Order order = orderRepository.save(new Order());
+        Order order = createOrder();
 
-        boolean exists = orderRepository.existsById(order.getId());
-
-        assertTrue(exists);
+        StepVerifier.create(
+                orderRepository.save(order)
+                        .flatMap(saved -> orderRepository.existsById(saved.getId()))
+        )
+                .assertNext(Assertions::assertTrue)
+                .verifyComplete();
     }
 
     @Test
     void existsById_shouldReturnFalse_whenNotExists() {
-        boolean exists = orderRepository.existsById(999L);
-
-        assertFalse(exists);
+        StepVerifier.create(orderRepository.existsById(999L))
+                .assertNext(Assertions::assertFalse)
+                .verifyComplete();
     }
 
     @Test
-    void save_shouldMaintainBidirectionalRelationship() {
-        Order order = new Order();
+    void deleteById_shouldRemoveOrder() {
+        Order order = createOrder();
 
-        OrderItem orderItem = new OrderItem(testItem1, 5);
-        orderItem.setOrder(order);
-
-        order.setOrderItems(List.of(orderItem));
-
-        Order saved = orderRepository.save(order);
-        entityManager.flush();
-        entityManager.clear();
-
-        // Retrieve and verify relationship
-        Order retrieved = orderRepository.findById(saved.getId()).orElseThrow();
-        OrderItem retrievedItem = retrieved.getOrderItems().get(0);
-
-        assertNotNull(retrievedItem.getOrder());
-        assertEquals(retrieved.getId(), retrievedItem.getOrder().getId());
+        StepVerifier.create(
+                orderRepository.save(order)
+                        .flatMap(saved -> orderRepository.deleteById(saved.getId())
+                                .then(orderRepository.findById(saved.getId())))
+        )
+                .verifyComplete();
     }
 
     @Test
     void deleteAll_shouldRemoveAllOrders() {
-        orderRepository.save(new Order());
-        orderRepository.save(new Order());
+        Order order1 = createOrder();
+        Order order2 = createOrder();
 
-        orderRepository.deleteAll();
+        orderRepository.saveAll(java.util.List.of(order1, order2))
+                .collectList()
+                .block();
 
-        assertEquals(0, orderRepository.count());
+        StepVerifier.create(
+                orderRepository.deleteAll()
+                        .then(orderRepository.count())
+        )
+                .assertNext(count -> assertEquals(0, count))
+                .verifyComplete();
     }
 }
