@@ -71,35 +71,16 @@ PostgreSQL
 
 ### Требования
 
-- Java 21 или выше
 - Docker и Docker Compose
+- Java 21 (для локальной разработки)
 - Maven 3.9+ (включен wrapper)
 
-### 1. Настройка базы данных
+### Запуск с Docker Compose
+
+Запуск всего стека (приложение + база данных + nginx):
 
 ```bash
-docker-compose -f docker/docker-compose.yml up -d
-```
-
-Эта команда:
-- Создаст и запустит контейнер PostgreSQL 16
-- Автоматически создаст базу данных `marketdb`
-- Настроит пользователя `postgres` с паролем `postgres`
-- База данных будет доступна на порту `5432`
-
-### 2. Запуск приложения
-
-#### С помощью Maven
-
-```bash
-./mvnw spring-boot:run
-```
-
-#### Сборка JAR и запуск
-
-```bash
-./mvnw package
-java -jar target/MyMarket-0.0.1-SNAPSHOT.jar
+docker compose -f docker/docker-compose.yml up --build
 ```
 
 Приложение будет доступно по адресу: **http://localhost:8080**
