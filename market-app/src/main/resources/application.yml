@@ -1,8 +1,8 @@
 spring:
   r2dbc:
-    url: r2dbc:postgresql://localhost:5432/marketdb
-    username: postgres
-    password: postgres
+    url: r2dbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:marketdb}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
   sql:
     init:
       mode: never

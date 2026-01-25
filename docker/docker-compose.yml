@@ -1,15 +1,40 @@
-version: "3.9"
-
 services:
-  postgres:
+  market-db:
+    container_name: market-db
     image: postgres:16
-    container_name: practicum_postgres
+    restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: marketdb
-    ports:
-      - "5432:5432"
+      - POSTGRES_USER=marketadmin
+      - POSTGRES_PASSWORD=testpassword
+      - POSTGRES_DB=marketdb
     volumes:
-      - ../src/main/resources/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
-      - ../src/main/resources/seed-dev.sql:/docker-entrypoint-initdb.d/02_seed-dev.sql
+      - ../market-app/src/main/resources/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ../market-app/src/main/resources/seed-dev.sql:/docker-entrypoint-initdb.d/02_seed-dev.sql
+      - market-data:/var/lib/postgresql/data
+
+  market-app:
+    container_name: market-app
+    build:
+      context: ..
+      dockerfile: market-app/Dockerfile
+    restart: on-failure
+    environment:
+      - POSTGRES_USER=marketadmin
+      - POSTGRES_PASSWORD=testpassword
+      - DB_HOST=market-db
+      - DB_PORT=5432
+      - DB_NAME=marketdb
+    depends_on:
+      - market-db
+  gw:
+    container_name: gw
+    image: nginx:1.29.0-alpine-perl
+    ports:
+      - "80:80"
+    volumes:
+      - ../proxy/nginx-market-proxy.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - market-app
+
+volumes:
+  market-data:
