@@ -23,8 +23,9 @@
     </properties>
 
     <modules>
-        <module>market-app</module>
+        <module>payment-api</module>
         <module>payment-service</module>
+        <module>market-app</module>
     </modules>
 
     <dependencyManagement>

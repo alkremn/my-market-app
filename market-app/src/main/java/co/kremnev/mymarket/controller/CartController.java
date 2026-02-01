@@ -1,9 +1,11 @@
 package co.kremnev.mymarket.controller;
 
+import co.kremnev.payment.client.api.PaymentsApi;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,11 +20,15 @@ import reactor.core.publisher.Mono;
 @Controller
 @Validated
 public class CartController {
+    private static final Logger logger = LoggerFactory.getLogger(CartController.class);
+
     private final CartService cartService;
+    private final PaymentsApi paymentsApi;
 
     @Autowired
-    public CartController(CartService cartService) {
+    public CartController(CartService cartService, PaymentsApi paymentsApi) {
         this.cartService = cartService;
+        this.paymentsApi = paymentsApi;
     }
 
     @PostMapping("/items")
@@ -53,26 +59,39 @@ public class CartController {
 
         return Mono.zip(
                 itemsFlux.collectList(),
-                cartService.getCartTotal(session)
-                ).map(tuple -> Rendering.view("cart")
-                        .modelAttribute("items", tuple.getT1())
-                        .modelAttribute("total", tuple.getT2())
-                        .build());
+                cartService.getCartTotal(session),
+                paymentsApi.getBalance(session.getId())
+                        .doOnNext(balance -> logger.info("Balance : {}", balance))
+                        .doOnError(error -> logger.error("Error getting balance: {}", error.getMessage()))
+                ).map(tuple -> {
+            assert tuple.getT3().getBalance() != null;
+            return Rendering.view("cart")
+                    .modelAttribute("items", tuple.getT1())
+                    .modelAttribute("total", tuple.getT2())
+                    .modelAttribute("canBuy", tuple.getT3().getBalance().compareTo(tuple.getT2()) >= 0)
+                    .build();
+        });
     }
 
     @PostMapping("/cart/items")
-    public Mono<Rendering> updateItems(@RequestParam Long id, @RequestParam String action,
-                                    Model model, WebSession session) {
-        Flux<ItemDto> itemsFlux = cartService.updateItemCount(session, id,  action)
+    public Mono<Rendering> updateItems(@ModelAttribute @Valid CartCommandRequest request, WebSession session) {
+        Flux<ItemDto> itemsFlux = cartService.updateItemCount(session, request.id(),  request.action())
                 .thenMany(cartService.getCartItems(session))
                 .map(cartItem -> ItemDto.from(cartItem.item(), cartItem.quantity()));
 
         return Mono.zip(
                 itemsFlux.collectList(),
-                cartService.getCartTotal(session)
-            ).map(tuple -> Rendering.view("cart")
+                cartService.getCartTotal(session),
+                paymentsApi.getBalance(session.getId())
+                        .doOnNext(balance -> logger.info("Balance : {}", balance))
+                        .doOnError(error -> logger.info("Error getting balance: {}", error.getMessage()))
+            ).map(tuple -> {
+            assert tuple.getT3().getBalance() != null;
+            return Rendering.view("cart")
                 .modelAttribute("items", tuple.getT1())
                 .modelAttribute("total", tuple.getT2())
-                .build());
+                .modelAttribute("canBuy", tuple.getT3().getBalance().compareTo(tuple.getT2()) >= 0)
+                .build();
+        });
     }
 }

@@ -3,17 +3,21 @@ WORKDIR /app
 
 # Copy parent POM and module POMs
 COPY pom.xml .
+COPY payment-api/pom.xml payment-api/
 COPY market-app/pom.xml market-app/
 COPY payment-service/pom.xml payment-service/
 
 # Copy Maven wrapper
 COPY mvnw .
 COPY .mvn .mvn
+RUN chmod +x mvnw
 
-# Copy source for market-app only
+RUN ./mvnw dependency:go-offline -pl market-app -am -B
+
+COPY payment-api/src payment-api/src
 COPY market-app/src market-app/src
 
-RUN chmod +x mvnw && ./mvnw -pl market-app -am clean package -DskipTests
+RUN ./mvnw -pl market-app -am clean package -DskipTests
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app

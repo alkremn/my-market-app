@@ -10,7 +10,7 @@ public record CartCommandRequest(
         @Min(value = 1, message = "Item ID must be positive")
         Long id,
         @NotEmpty(message = "Action is required")
-        @Pattern(regexp = "^(PLUS|MINUS|1|-1)$", message = "Invalid action")
+        @Pattern(regexp = "^(PLUS|MINUS|DELETE|1|-1)$", message = "Invalid action")
         String action,
         String search,
         String sort,

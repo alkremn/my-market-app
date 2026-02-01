@@ -10,7 +10,23 @@ services:
     volumes:
       - ../market-app/src/main/resources/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
       - ../market-app/src/main/resources/seed-dev.sql:/docker-entrypoint-initdb.d/02_seed-dev.sql
+      - ../payment-service/src/main/resources/schema.sql:/docker-entrypoint-initdb.d/03_payment_schema.sql
       - market-data:/var/lib/postgresql/data
+
+  payment-service:
+    container_name: payment-service
+    build:
+      context: ..
+      dockerfile: payment-service/Dockerfile
+    restart: on-failure
+    environment:
+      - POSTGRES_USER=marketadmin
+      - POSTGRES_PASSWORD=testpassword
+      - DB_HOST=market-db
+      - DB_PORT=5432
+      - DB_NAME=marketdb
+    depends_on:
+      - market-db
 
   market-app:
     container_name: market-app
@@ -24,8 +40,11 @@ services:
       - DB_HOST=market-db
       - DB_PORT=5432
       - DB_NAME=marketdb
+      - PAYMENT_SERVICE_URL=http://payment-service:8081/api/v1
     depends_on:
       - market-db
+      - payment-service
+
   gw:
     container_name: gw
     image: nginx:1.29.0-alpine-perl
