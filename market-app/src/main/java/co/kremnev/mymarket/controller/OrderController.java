@@ -55,15 +55,16 @@ public class OrderController {
 
     @PostMapping("/buy")
     public Mono<String> buy(WebSession session) {
+        String sessionId = session.getId();
         return Mono.zip(
-                cartService.getCartItems(session).collectList(),
-                cartService.getCartTotal(session)
+                cartService.getCartItems(sessionId).collectList(),
+                cartService.getCartTotal(sessionId)
         ).flatMap(tuple -> {
             var items = tuple.getT1();
             var total = tuple.getT2();
-            return paymentsApi.processPayment(new PaymentRequest().userId(session.getId()).amount(total))
+            return paymentsApi.processPayment(new PaymentRequest().userId(sessionId).amount(total))
                     .flatMap(paymentResult -> orderService.create(items))
-                    .flatMap(order -> cartService.clear(session).thenReturn(order))
+                    .flatMap(order -> cartService.clear(sessionId).thenReturn(order))
                     .map(order -> "redirect:orders/" + order.getId() + "?newOrder=true");
         }).doOnError(error -> logger.info("Error creating payment: {}", error.getMessage()));
     }

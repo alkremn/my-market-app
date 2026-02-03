@@ -1,17 +1,18 @@
 package co.kremnev.mymarket.controller;
 
-import co.kremnev.mymarket.dto.CartItem;
+import co.kremnev.mymarket.model.CartItem;
 import co.kremnev.mymarket.model.Item;
 import co.kremnev.mymarket.model.Order;
 import co.kremnev.mymarket.service.CartService;
 import co.kremnev.mymarket.service.OrderService;
+import co.kremnev.payment.client.api.PaymentsApi;
+import co.kremnev.payment.client.model.PaymentResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import org.springframework.web.server.WebSession;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -19,8 +20,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @WebFluxTest(OrderController.class)
@@ -35,8 +35,12 @@ class OrderControllerTest {
     @MockitoBean
     private CartService cartService;
 
+    @MockitoBean
+    private PaymentsApi paymentsApi;
+
     private Order testOrder;
     private Item testItem;
+    private CartItem testCartItem;
 
     @BeforeEach
     void setUp() {
@@ -46,6 +50,13 @@ class OrderControllerTest {
                 .description("Description")
                 .price(BigDecimal.valueOf(10.0))
                 .build();
+
+        testCartItem = new CartItem();
+        testCartItem.setId(1L);
+        testCartItem.setCartId(1L);
+        testCartItem.setItemId(1L);
+        testCartItem.setQuantity(2);
+        testCartItem.setItem(testItem);
 
         testOrder = new Order();
         testOrder.setId(1L);
@@ -106,12 +117,14 @@ class OrderControllerTest {
 
     @Test
     void buy_shouldCreateOrderAndRedirect() {
-        List<CartItem> cartItems = List.of(new CartItem(testItem, 2));
-
-        when(cartService.getCartItems(any(WebSession.class)))
-                .thenReturn(Flux.fromIterable(cartItems));
+        when(cartService.getCartItems(anyString()))
+                .thenReturn(Flux.just(testCartItem));
+        when(cartService.getCartTotal(anyString()))
+                .thenReturn(Mono.just(BigDecimal.valueOf(20.0)));
+        when(paymentsApi.processPayment(any()))
+                .thenReturn(Mono.just(new PaymentResponse()));
         when(orderService.create(anyList())).thenReturn(Mono.just(testOrder));
-        when(cartService.clear(any(WebSession.class))).thenReturn(Mono.empty());
+        when(cartService.clear(anyString())).thenReturn(Mono.empty());
 
         webTestClient.post()
                 .uri("/buy")
@@ -119,25 +132,27 @@ class OrderControllerTest {
                 .expectStatus().is3xxRedirection()
                 .expectHeader().location("orders/1?newOrder=true");
 
-        verify(cartService).getCartItems(any(WebSession.class));
+        verify(cartService).getCartItems(anyString());
         verify(orderService).create(anyList());
-        verify(cartService).clear(any(WebSession.class));
+        verify(cartService).clear(anyString());
     }
 
     @Test
     void buy_shouldClearCartAfterCreatingOrder() {
-        List<CartItem> cartItems = List.of(new CartItem(testItem, 1));
-
-        when(cartService.getCartItems(any(WebSession.class)))
-                .thenReturn(Flux.fromIterable(cartItems));
+        when(cartService.getCartItems(anyString()))
+                .thenReturn(Flux.just(testCartItem));
+        when(cartService.getCartTotal(anyString()))
+                .thenReturn(Mono.just(BigDecimal.valueOf(10.0)));
+        when(paymentsApi.processPayment(any()))
+                .thenReturn(Mono.just(new PaymentResponse()));
         when(orderService.create(anyList())).thenReturn(Mono.just(testOrder));
-        when(cartService.clear(any(WebSession.class))).thenReturn(Mono.empty());
+        when(cartService.clear(anyString())).thenReturn(Mono.empty());
 
         webTestClient.post()
                 .uri("/buy")
                 .exchange()
                 .expectStatus().is3xxRedirection();
 
-        verify(cartService).clear(any(WebSession.class));
+        verify(cartService).clear(anyString());
     }
 }

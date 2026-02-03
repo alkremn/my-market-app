@@ -1,6 +1,6 @@
 package co.kremnev.mymarket.service;
 
-import co.kremnev.mymarket.dto.CartItem;
+import co.kremnev.mymarket.model.CartItem;
 import co.kremnev.mymarket.model.Order;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;

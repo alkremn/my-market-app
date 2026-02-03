@@ -30,7 +30,7 @@ public class ItemController {
     @GetMapping(value = {"/", "/items"})
     public Mono<Rendering> getItems(@ModelAttribute ItemsQueryRequest queryParams, WebSession session) {
         return itemService.getAllItems(queryParams)
-                .zipWith(cartService.getCart(session))
+                .zipWith(cartService.getCart(session.getId()))
                 .map(tuple -> {
                     var page = tuple.getT1();
                     var currentPaging = new Paging(
@@ -56,7 +56,7 @@ public class ItemController {
     @GetMapping("/items/{id}")
     public Mono<Rendering> getItem(@PathVariable("id") long id, WebSession session) {
         return itemService.getById(id)
-                .zipWith(cartService.getCart(session))
+                .zipWith(cartService.getCart(session.getId()))
                 .map(tuple -> ItemDto.from(tuple.getT1(),
                                 tuple.getT2().getItemCountById(tuple.getT1().getId())))
                 .map(item -> Rendering.view("item")

@@ -1,47 +1,60 @@
 package co.kremnev.mymarket.controller;
 
-import co.kremnev.mymarket.dto.CartItem;
+import co.kremnev.mymarket.model.CartItem;
 import co.kremnev.mymarket.model.Item;
+import co.kremnev.payment.client.model.BalanceDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
-import org.springframework.web.server.WebSession;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @WebFluxTest(CartController.class)
 class CartControllerTest extends BaseControllerTest {
 
     private Item testItem;
+    private CartItem testCartItem;
+    private BalanceDto testBalance;
 
     @BeforeEach
     void setUp() {
         testItem = Item.builder().id(1L).title("Test Item").price(BigDecimal.valueOf(10.0)).build();
+
+        testCartItem = new CartItem();
+        testCartItem.setId(1L);
+        testCartItem.setCartId(1L);
+        testCartItem.setItemId(1L);
+        testCartItem.setQuantity(2);
+        testCartItem.setItem(testItem);
+
+        testBalance = new BalanceDto()
+                .userId("test-session")
+                .balance(BigDecimal.valueOf(100.0));
     }
 
     @Test
-    void getCartItems_shouldDisplayCartPage() throws Exception {
-        Flux<CartItem> cartItems = Flux.just(new CartItem(testItem, 2));
-        when(cartService.getCartItems(any(WebSession.class))).thenReturn(cartItems);
-        when(cartService.getCartTotal(any(WebSession.class))).thenReturn(Mono.just(BigDecimal.valueOf(20.0)));
+    void getCartItems_shouldDisplayCartPage() {
+        Flux<CartItem> cartItems = Flux.just(testCartItem);
+        when(cartService.getCartItems(anyString())).thenReturn(cartItems);
+        when(cartService.getCartTotal(anyString())).thenReturn(Mono.just(BigDecimal.valueOf(20.0)));
+        when(paymentsApi.getBalance(anyString())).thenReturn(Mono.just(testBalance));
 
         webTestClient.get()
                 .uri("/cart/items")
                 .exchange()
                 .expectStatus().isOk();
 
-        verify(cartService).getCartItems(any(WebSession.class));
+        verify(cartService).getCartItems(anyString());
     }
 
     @Test
-    void addOrRemoveToCart_shouldUpdateCart_whenActionIsPlus() throws Exception {
-        when(cartService.updateItemCount(any(WebSession.class), eq(1L), eq("PLUS")))
+    void addOrRemoveToCart_shouldUpdateCart_whenActionIsPlus() {
+        when(cartService.updateItemCount(anyString(), eq(1L), eq("PLUS")))
                 .thenReturn(Mono.empty());
 
         webTestClient.post()
@@ -59,12 +72,12 @@ class CartControllerTest extends BaseControllerTest {
                 .expectStatus().is3xxRedirection()
                 .expectHeader().location("/items?search=&sort=NO&pageNumber=1&pageSize=5");
 
-        verify(cartService).updateItemCount(any(WebSession.class), eq(1L), eq("PLUS"));
+        verify(cartService).updateItemCount(anyString(), eq(1L), eq("PLUS"));
     }
 
     @Test
-    void addOrRemoveToCart_shouldUpdateCart_whenActionIsMinus() throws Exception {
-        when(cartService.updateItemCount(any(WebSession.class), eq(1L), eq("MINUS")))
+    void addOrRemoveToCart_shouldUpdateCart_whenActionIsMinus() {
+        when(cartService.updateItemCount(anyString(), eq(1L), eq("MINUS")))
                 .thenReturn(Mono.empty());
 
         webTestClient.post()
@@ -82,12 +95,12 @@ class CartControllerTest extends BaseControllerTest {
                 .expectStatus().is3xxRedirection()
                 .expectHeader().location("/items?search=test&sort=PRICE&pageNumber=2&pageSize=10");
 
-        verify(cartService).updateItemCount(any(WebSession.class),eq(1L), eq("MINUS"));
+        verify(cartService).updateItemCount(anyString(), eq(1L), eq("MINUS"));
     }
 
     @Test
-    void addOrRemoveToCart_shouldRedirectToItemDetail_whenIdInPath() throws Exception {
-        when(cartService.updateItemCount(any(WebSession.class), eq(5L), eq("PLUS")))
+    void addOrRemoveToCart_shouldRedirectToItemDetail_whenIdInPath() {
+        when(cartService.updateItemCount(anyString(), eq(5L), eq("PLUS")))
                 .thenReturn(Mono.empty());
 
         webTestClient.post()
@@ -105,19 +118,20 @@ class CartControllerTest extends BaseControllerTest {
                 .expectStatus().is3xxRedirection()
                 .expectHeader().location("/items/5");
 
-        verify(cartService).updateItemCount(any(WebSession.class),eq(5L), eq("PLUS"));
+        verify(cartService).updateItemCount(anyString(), eq(5L), eq("PLUS"));
     }
 
     @Test
-    void updateCartFromCartPage_shouldUpdateAndReturnCartPage() throws Exception {
-        Flux<CartItem> cartItems = Flux.just(new CartItem(testItem, 3));
+    void updateCartFromCartPage_shouldUpdateAndReturnCartPage() {
+        Flux<CartItem> cartItems = Flux.just(testCartItem);
 
-        when(cartService.updateItemCount(any(WebSession.class), eq(1L), eq("PLUS")))
+        when(cartService.updateItemCount(anyString(), eq(1L), eq("PLUS")))
                 .thenReturn(Mono.empty());
-        when(cartService.getCartItems(any(WebSession.class)))
+        when(cartService.getCartItems(anyString()))
                 .thenReturn(cartItems);
-        when(cartService.getCartTotal(any(WebSession.class)))
+        when(cartService.getCartTotal(anyString()))
                 .thenReturn(Mono.just(BigDecimal.valueOf(30.0)));
+        when(paymentsApi.getBalance(anyString())).thenReturn(Mono.just(testBalance));
 
         webTestClient.post()
                 .uri(uriBuilder -> uriBuilder
@@ -128,12 +142,12 @@ class CartControllerTest extends BaseControllerTest {
                 .exchange()
                 .expectStatus().isOk();
 
-        verify(cartService).updateItemCount(any(WebSession.class), eq(1L), eq("PLUS"));
-        verify(cartService).getCartItems(any(WebSession.class));
+        verify(cartService).updateItemCount(anyString(), eq(1L), eq("PLUS"));
+        verify(cartService).getCartItems(anyString());
     }
 
     @Test
-    void addOrRemoveToCart_shouldNotUpdateCart_whenNoAction() throws Exception {
+    void addOrRemoveToCart_shouldNotUpdateCart_whenNoAction() {
         webTestClient.post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/items")
@@ -147,6 +161,6 @@ class CartControllerTest extends BaseControllerTest {
                 .exchange()
                 .expectStatus().is4xxClientError();
 
-        verify(cartService, never()).updateItemCount(any(WebSession.class), anyLong(), eq("PLUS"));
+        verify(cartService, never()).updateItemCount(anyString(), anyLong(), eq("PLUS"));
     }
 }

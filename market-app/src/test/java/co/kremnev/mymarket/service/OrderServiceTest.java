@@ -1,6 +1,6 @@
 package co.kremnev.mymarket.service;
 
-import co.kremnev.mymarket.dto.CartItem;
+import co.kremnev.mymarket.model.CartItem;
 import co.kremnev.mymarket.model.Item;
 import co.kremnev.mymarket.model.Order;
 import co.kremnev.mymarket.model.OrderItem;
@@ -49,10 +49,21 @@ class OrderServiceTest {
         testItem1 = Item.builder().id(1L).title("Item 1").description("Description 1").price(BigDecimal.valueOf(10.0)).build();
         testItem2 = Item.builder().id(2L).title("Item 2").description("Description 2").price(BigDecimal.valueOf(20.0)).build();
 
-        cartItems = List.of(
-                new CartItem(testItem1, 2),
-                new CartItem(testItem2, 3)
-        );
+        CartItem cartItem1 = new CartItem();
+        cartItem1.setId(1L);
+        cartItem1.setCartId(1L);
+        cartItem1.setItemId(1L);
+        cartItem1.setQuantity(2);
+        cartItem1.setItem(testItem1);
+
+        CartItem cartItem2 = new CartItem();
+        cartItem2.setId(2L);
+        cartItem2.setCartId(1L);
+        cartItem2.setItemId(2L);
+        cartItem2.setQuantity(3);
+        cartItem2.setItem(testItem2);
+
+        cartItems = List.of(cartItem1, cartItem2);
     }
 
     @Test

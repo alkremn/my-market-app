@@ -3,6 +3,7 @@ package co.kremnev.mymarket.controller;
 import co.kremnev.mymarket.service.CartService;
 import co.kremnev.mymarket.service.ItemService;
 import co.kremnev.mymarket.service.OrderService;
+import co.kremnev.payment.client.api.PaymentsApi;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -22,4 +23,7 @@ public abstract class BaseControllerTest {
 
     @MockitoBean
     protected ItemService itemService;
+
+    @MockitoBean
+    protected PaymentsApi paymentsApi;
 }

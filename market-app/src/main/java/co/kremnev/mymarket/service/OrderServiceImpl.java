@@ -1,6 +1,6 @@
 package co.kremnev.mymarket.service;
 
-import co.kremnev.mymarket.dto.CartItem;
+import co.kremnev.mymarket.model.CartItem;
 import co.kremnev.mymarket.model.Order;
 import co.kremnev.mymarket.model.OrderItem;
 import co.kremnev.mymarket.repository.ItemRepository;
@@ -75,7 +75,7 @@ public class OrderServiceImpl implements OrderService {
                 .flatMap(savedOrder -> {
                     var orderItems = cartItems.stream()
                             .map(cartItem -> {
-                                var orderItem = new OrderItem(cartItem.item(), cartItem.quantity());
+                                var orderItem = new OrderItem(cartItem.getItem(), cartItem.getQuantity());
                                 orderItem.setOrder(order);
                                 return orderItem;
                             })
