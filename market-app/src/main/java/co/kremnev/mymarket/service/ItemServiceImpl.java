@@ -1,43 +1,60 @@
 package co.kremnev.mymarket.service;
 
 import co.kremnev.mymarket.dto.Request.ItemsQueryRequest;
+import co.kremnev.mymarket.dto.cache.CachedItem;
+import co.kremnev.mymarket.dto.cache.CachedItemsPage;
 import co.kremnev.mymarket.model.Item;
 import co.kremnev.mymarket.repository.ItemRepository;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.*;
+import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.Set;
+import java.time.Duration;
+import java.util.List;
 
 @Service
 public class ItemServiceImpl implements ItemService {
+    private static final String ITEM_CACHE_KEY_PREFIX = "item:";
+    private static final String LIST_CACHE_KEY_PREFIX = "list:";
 
     private final ItemRepository itemRepository;
+    private final ReactiveRedisTemplate<String, Object> redisTemplate;
+    private final Duration cacheTtl;
 
-    public ItemServiceImpl(ItemRepository itemRepository) {
+    public ItemServiceImpl(ItemRepository itemRepository,
+                           ReactiveRedisTemplate<String, Object> redisTemplate,
+                           @Value("${spring.cache.redis.time-to-live:PT1M}") Duration cacheTtl) {
         this.itemRepository = itemRepository;
+        this.redisTemplate = redisTemplate;
+        this.cacheTtl = cacheTtl;
     }
 
     @Override
     public Mono<Page<Item>> getAllItems(ItemsQueryRequest queryRequest) {
+        String cacheKey = buildListCacheKey(queryRequest);
         Pageable pageable = createPageable(queryRequest);
 
-        var search = queryRequest.getSearch();
-        if (search.isEmpty()) {
-            return getItemsPageableStream(itemRepository.findAllBy(pageable), pageable);
-        }
-        return getItemsPageableStream(itemRepository.findByTitleContainingIgnoreCase(search, pageable), pageable);
+        return redisTemplate.opsForValue().get(cacheKey)
+                .cast(CachedItemsPage.class)
+                .flatMap(cachedPage -> fetchFullItemsFromCache(cachedPage, pageable))
+                .switchIfEmpty(fetchFromDatabase(queryRequest, pageable, cacheKey));
     }
 
     @Override
     public Mono<Item> getById(Long id) {
-        return itemRepository.findById(id);
-    }
-
-    @Override
-    public Flux<Item> getByIds(Set<Long> ids) {
-        return itemRepository.findAllById(ids);
+        String key = ITEM_CACHE_KEY_PREFIX + id;
+        return redisTemplate.opsForValue().get(key)
+                .cast(Item.class)
+                .switchIfEmpty(
+                        itemRepository.findById(id)
+                                .flatMap(item -> redisTemplate.opsForValue()
+                                        .set(key, item,cacheTtl)
+                                        .thenReturn(item))
+                );
     }
 
     private Pageable createPageable(ItemsQueryRequest queryRequest) {
@@ -50,11 +67,52 @@ public class ItemServiceImpl implements ItemService {
         return PageRequest.of(queryRequest.getPageNumber() - 1, queryRequest.getPageSize(), sort);
     }
 
-    private Mono<Page<Item>> getItemsPageableStream(Flux<Item> itemsStream, Pageable pageable) {
-        return itemsStream
+    private String buildListCacheKey(ItemsQueryRequest request) {
+        return LIST_CACHE_KEY_PREFIX +
+                "search:" + request.getSearch().toLowerCase() +
+                ":sort:" + request.getSort() +
+                ":page:" + request.getPageNumber() +
+                ":size:" + request.getPageSize();
+    }
+
+    private Mono<Page<Item>> fetchFullItemsFromCache(CachedItemsPage cachedItemsPage, Pageable pageable) {
+        List<Long> ids = cachedItemsPage.getItems().stream()
+                .map(CachedItem::getId)
+                .toList();
+
+        return Flux.fromIterable(ids)
+                .flatMapSequential(this::getById)
+                .collectList()
+                .map(items -> new PageImpl<>(items, pageable, cachedItemsPage.getTotal()));
+    }
+
+    private Mono<Page<Item>> fetchFromDatabase(ItemsQueryRequest request, Pageable pageable,  String cacheKey) {
+        Flux<Item> itemsFlux = request.getSearch().isEmpty()
+                        ? itemRepository.findAllBy(pageable)
+                        : itemRepository.findByTitleContainingIgnoreCase(request.getSearch(), pageable);
+
+        return itemsFlux
+                .flatMap(this::cacheItem)
                 .collectList()
                 .zipWith(itemRepository.count())
-                .map(objects ->
-                        new PageImpl<>(objects.getT1(), pageable, objects.getT2()));
+                .flatMap(tuple -> {
+                    List<Item> items = tuple.getT1();
+                    long total = tuple.getT2();
+
+                    List<CachedItem> cachedItems = items.stream()
+                            .map(CachedItem::fromItem)
+                            .toList();
+                    CachedItemsPage cachedItemsPage = new CachedItemsPage(cachedItems, total);
+                    return redisTemplate.opsForValue()
+                            .set(cacheKey, cachedItemsPage, cacheTtl)
+                            .thenReturn(new PageImpl<>(items, pageable, total));
+                });
+    }
+
+    private Mono<Item> cacheItem(Item item) {
+        String key = ITEM_CACHE_KEY_PREFIX + item.getId();
+        return redisTemplate.opsForValue()
+                .set(key, item, cacheTtl)
+                .thenReturn(item);
     }
 }

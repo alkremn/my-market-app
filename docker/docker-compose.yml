@@ -28,6 +28,11 @@ services:
     depends_on:
       - market-db
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
   market-app:
     container_name: market-app
     build:
@@ -41,9 +46,11 @@ services:
       - DB_PORT=5432
       - DB_NAME=marketdb
       - PAYMENT_SERVICE_URL=http://payment-service:8081/api/v1
+      - REDIS_HOST=redis
     depends_on:
       - market-db
       - payment-service
+      - redis
 
   gw:
     container_name: gw
