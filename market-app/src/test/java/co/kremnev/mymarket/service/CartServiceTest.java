@@ -75,7 +75,7 @@ class CartServiceTest {
     @Test
     void getCart_shouldReturnFromCache_whenCacheHit() {
         testCart.setItems(new ArrayList<>());
-        when(cacheService.get(CACHE_KEY)).thenReturn(Mono.just(testCart));
+        when(cacheService.get(CACHE_KEY, Cart.class)).thenReturn(Mono.just(testCart));
 
         StepVerifier.create(cartService.getCart(SESSION_ID))
                 .assertNext(cart -> {
@@ -89,7 +89,7 @@ class CartServiceTest {
 
     @Test
     void getCart_shouldLoadFromDbAndCache_whenCacheMiss() {
-        when(cacheService.get(CACHE_KEY)).thenReturn(Mono.empty());
+        when(cacheService.get(CACHE_KEY, Cart.class)).thenReturn(Mono.empty());
         when(cartRepository.findBySessionId(SESSION_ID)).thenReturn(Mono.just(testCart));
         when(cartItemRepository.findAllByCartId(testCart.getId())).thenReturn(Flux.empty());
         when(cacheService.set(eq(CACHE_KEY), any(Cart.class))).thenReturn(Mono.just(true));
@@ -107,7 +107,7 @@ class CartServiceTest {
 
     @Test
     void getCart_shouldCreateNewCart_whenCartDoesNotExist() {
-        when(cacheService.get(CACHE_KEY)).thenReturn(Mono.empty());
+        when(cacheService.get(CACHE_KEY, Cart.class)).thenReturn(Mono.empty());
         when(cartRepository.findBySessionId(SESSION_ID)).thenReturn(Mono.empty());
         when(cartRepository.save(any(Cart.class))).thenReturn(Mono.just(testCart));
         when(cartItemRepository.findAllByCartId(testCart.getId())).thenReturn(Flux.empty());
@@ -200,7 +200,7 @@ class CartServiceTest {
     @Test
     void getCartItems_shouldReturnEmptyFlux_whenCartHasNoItems() {
         testCart.setItems(new ArrayList<>());
-        when(cacheService.get(CACHE_KEY)).thenReturn(Mono.just(testCart));
+        when(cacheService.get(CACHE_KEY, Cart.class)).thenReturn(Mono.just(testCart));
 
         StepVerifier.create(cartService.getCartItems(SESSION_ID))
                 .verifyComplete();
@@ -212,7 +212,7 @@ class CartServiceTest {
         testCart.getItems().add(testCartItem1);
         testCart.getItems().add(testCartItem2);
 
-        when(cacheService.get(CACHE_KEY)).thenReturn(Mono.just(testCart));
+        when(cacheService.get(CACHE_KEY, Cart.class)).thenReturn(Mono.just(testCart));
         when(itemService.getById(1L)).thenReturn(Mono.just(testItem1));
         when(itemService.getById(2L)).thenReturn(Mono.just(testItem2));
 
@@ -231,7 +231,7 @@ class CartServiceTest {
         testCart.getItems().add(testCartItem1);
         testCart.getItems().add(testCartItem2);
 
-        when(cacheService.get(CACHE_KEY)).thenReturn(Mono.just(testCart));
+        when(cacheService.get(CACHE_KEY, Cart.class)).thenReturn(Mono.just(testCart));
         when(itemService.getById(1L)).thenReturn(Mono.just(testItem1));
         when(itemService.getById(2L)).thenReturn(Mono.just(testItem2));
 
@@ -246,7 +246,7 @@ class CartServiceTest {
     @Test
     void getCartTotal_shouldReturnZero_whenCartIsEmpty() {
         testCart.setItems(new ArrayList<>());
-        when(cacheService.get(CACHE_KEY)).thenReturn(Mono.just(testCart));
+        when(cacheService.get(CACHE_KEY, Cart.class)).thenReturn(Mono.just(testCart));
 
         StepVerifier.create(cartService.getCartTotal(SESSION_ID))
                 .assertNext(total -> assertEquals(BigDecimal.ZERO, total))

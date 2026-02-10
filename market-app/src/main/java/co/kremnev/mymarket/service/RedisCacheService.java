@@ -16,8 +16,10 @@ public class RedisCacheService implements CacheService {
     }
 
     @Override
-    public Mono<Object> get(String key) {
-        return  redisTemplate.opsForValue().get(key);
+    public <T> Mono<T> get(String key, Class<T> type) {
+        return redisTemplate.opsForValue().get(key)
+                .filter(type::isInstance)
+                .cast(type);
     }
 
     @Override

@@ -3,7 +3,7 @@ package co.kremnev.mymarket.service;
 import reactor.core.publisher.Mono;
 
 public interface CacheService {
-    Mono<Object> get(String key);
+    <T> Mono<T> get(String key, Class<T> type);
     Mono<Boolean> set(String key, Object value);
     Mono<Long> delete(String key);
 }

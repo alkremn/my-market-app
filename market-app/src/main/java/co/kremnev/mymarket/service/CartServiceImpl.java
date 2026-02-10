@@ -41,8 +41,7 @@ public class CartServiceImpl implements CartService {
     public Mono<Cart> getCart(String sessionId) {
         String key = cacheKey(sessionId);
 
-        return cacheService.get(key)
-                .cast(Cart.class)
+        return cacheService.get(key, Cart.class)
                 .doOnNext(cart -> log.debug("Cache hit for cart: {}", sessionId))
                 .switchIfEmpty(Mono.defer(() -> {
                     log.debug("Cache miss for cart: {}", sessionId);
