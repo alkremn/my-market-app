@@ -8,8 +8,18 @@ My Market App — это полнофункциональное приложен
 - Просматривать каталог товаров с поиском и сортировкой
 - Добавлять товары в корзину
 - Управлять корзиной (добавление, удаление, изменение количества)
-- Оформлять заказы
+- Оформлять заказы с обработкой платежей
 - Просматривать историю заказов
+
+## Структура проекта
+
+```
+my-market-app/
+├── market-app/          # Основное веб-приложение магазина
+├── payment-service/     # Микросервис обработки платежей
+├── payment-api/         # OpenAPI спецификация и сгенерированные клиенты
+└── docker/              # Docker конфигурации
+```
 
 ## Технологии
 
@@ -17,12 +27,18 @@ My Market App — это полнофункциональное приложен
 - **Spring Boot 4.0.1** - основной фреймворк
 - **Spring WebFlux** - реактивный веб-слой
 - **Spring Data R2DBC** - реактивная работа с базой данных
+- **Spring Session** - управление сессиями
 - **Project Reactor** - реактивные потоки (Mono/Flux)
 - **Thymeleaf** - шаблонизатор для представлений
 
-### База данных
+### База данных и кэширование
 - **PostgreSQL** - production база данных
 - **R2DBC PostgreSQL** - реактивный драйвер
+- **Redis** - кэширование корзины
+
+### API
+- **OpenAPI Generator** - генерация клиентов и серверных интерфейсов
+- **WebClient** - реактивный HTTP клиент для межсервисного взаимодействия
 
 ### Тестирование
 - **JUnit 5** - тестовый фреймворк
@@ -32,83 +48,61 @@ My Market App — это полнофункциональное приложен
 - **WebTestClient** - тестирование WebFlux контроллеров
 
 ### Сборка
-- **Maven** - система сборки
-
-## Архитектура
-
-### Реактивный стек
-
-Приложение использует полностью реактивный стек:
-
-```
-Controller (WebFlux)
-    ↓ Mono/Flux
-Service Layer
-    ↓ Mono/Flux
-Repository (R2DBC)
-    ↓ Reactive Streams
-PostgreSQL
-```
+- **Maven** - система сборки (multi-module)
 
 ### Основные компоненты
 
-#### Контроллеры
+#### Market App
+
+**Контроллеры:**
 - `ItemController` - управление каталогом товаров
 - `CartController` - управление корзиной
 - `OrderController` - управление заказами
 
-#### Сервисы
+**Сервисы:**
 - `ItemService` - бизнес-логика работы с товарами
-- `CartService` - бизнес-логика корзины (WebSession)
+- `CartService` - бизнес-логика корзины с Redis кэшированием
 - `OrderService` - бизнес-логика заказов
 
-#### Репозитории
+**Репозитории:**
 - `ItemRepository` - реактивный доступ к данным товаров
+- `CartRepository` - реактивный доступ к данным корзин
+- `CartItemRepository` - реактивный доступ к позициям корзины
 - `OrderRepository` - реактивный доступ к данным заказов
 - `OrderItemRepository` - реактивный доступ к позициям заказов
+
+#### Payment Service (внутренний микросервис)
+
+**Контроллеры:**
+- `PaymentController` - внутренний API для обработки платежей
+
+**Сервисы:**
+- `PaymentService` - бизнес-логика обработки платежей и управления балансом
+
+**Репозитории:**
+- `PaymentRepository` - реактивный доступ к данным баланса
 
 ## Установка и запуск
 
 ### Требования
 
-- Java 21 или выше
 - Docker и Docker Compose
+- Java 21 (для локальной разработки)
 - Maven 3.9+ (включен wrapper)
 
-### 1. Настройка базы данных
+### Запуск с Docker Compose
+
+Запуск всего стека (приложения + база данных + Redis):
 
 ```bash
-docker-compose -f docker/docker-compose.yml up -d
+docker compose -f docker/docker-compose.yml up --build
 ```
-
-Эта команда:
-- Создаст и запустит контейнер PostgreSQL 16
-- Автоматически создаст базу данных `marketdb`
-- Настроит пользователя `postgres` с паролем `postgres`
-- База данных будет доступна на порту `5432`
-
-### 2. Запуск приложения
-
-#### С помощью Maven
-
-```bash
-./mvnw spring-boot:run
-```
-
-#### Сборка JAR и запуск
-
-```bash
-./mvnw package
-java -jar target/MyMarket-0.0.1-SNAPSHOT.jar
-```
-
-Приложение будет доступно по адресу: **http://localhost:8080**
 
 ## Тестирование
 
 ### Требования для тестов
 
-- **Docker** - обязательно для запуска тестов (Testcontainers)
+- **Docker** - обязательно для запуска интеграционных тестов (Testcontainers)
 
 ### Запуск всех тестов
 
@@ -116,9 +110,16 @@ java -jar target/MyMarket-0.0.1-SNAPSHOT.jar
 ./mvnw test
 ```
 
+### Запуск тестов для конкретного модуля
+
+```bash
+./mvnw test -pl market-app
+./mvnw test -pl payment-service
+```
+
 ### Запуск конкретного теста
 
 ```bash
-./mvnw test -Dtest=ItemRepositoryTest
-./mvnw test -Dtest=OrderControllerTest
+./mvnw test -pl market-app -Dtest=CartServiceTest
+./mvnw test -pl payment-service -Dtest=PaymentServiceTest
 ```

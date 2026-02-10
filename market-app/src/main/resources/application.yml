@@ -1,0 +1,22 @@
+spring:
+  r2dbc:
+    url: r2dbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:marketdb}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+  sql:
+    init:
+      mode: never
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+cache:
+  ttl: PT1M
+
+payment:
+  service:
+    url: ${PAYMENT_SERVICE_URL:http://localhost:8081/api/v1}
+
+logging:
+  level:
+    co.kremnev: DEBUG

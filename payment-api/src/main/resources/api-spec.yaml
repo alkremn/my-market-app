@@ -1,0 +1,102 @@
+openapi: 3.0.0
+info:
+  title: Payment Service API
+  description: Service for managing account balance and processing payments
+  version: 1.0.0
+servers:
+  - url: 'https://localhost:8081/api/v1'
+    description: Local development server (v1)
+paths:
+  /balance/{userId}:
+    get:
+      operationId: getBalance
+      summary: Get current account balance
+      tags:
+        - Payments
+      parameters:
+        - name: userId
+          in: path
+          description: User identification number
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Current balance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceDto'
+
+  /payments:
+    post:
+      operationId: processPayment
+      summary: Process a payment
+      tags:
+        - Payments
+      requestBody:
+        required: true
+        $ref: '#/components/requestBodies/ApplyPayment'
+      responses:
+        '200':
+          description: Payment processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '400':
+          description: Insufficient funds
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorPaymentResponse'
+
+components:
+  requestBodies:
+    ApplyPayment:
+      description: Data to apply payment amount
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PaymentRequest'
+
+  schemas:
+    BalanceDto:
+      type: object
+      properties:
+        userId:
+          type: string
+        balance:
+          type: number
+
+    PaymentRequest:
+      type: object
+      required:
+        - userId
+        - amount
+      properties:
+        userId:
+          type: string
+        amount:
+          type: number
+
+    PaymentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        newBalance:
+          type: number
+          example: 400.00
+
+    ErrorPaymentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Not enough balance to complete payment
