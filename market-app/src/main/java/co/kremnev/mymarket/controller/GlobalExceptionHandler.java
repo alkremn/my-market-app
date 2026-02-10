@@ -13,6 +13,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoSuchElementException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public String handleNoSuchElementException() {
-        return "notFound";
+        return "notfound";
     }
 }

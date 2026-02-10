@@ -62,6 +62,6 @@ public class ItemController {
                 .map(item -> Rendering.view("item")
                         .modelAttribute("item", item)
                         .build())
-                .switchIfEmpty(Mono.just(Rendering.view("/notfound").build()));
+                .switchIfEmpty(Mono.just(Rendering.view("notfound").build()));
     }
 }
