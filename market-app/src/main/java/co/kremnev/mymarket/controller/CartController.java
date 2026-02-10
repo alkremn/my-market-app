@@ -17,6 +17,9 @@ import org.springframework.web.server.WebSession;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.math.BigDecimal;
+import java.util.List;
+
 @Controller
 @Validated
 public class CartController {
@@ -63,14 +66,7 @@ public class CartController {
                 paymentsApi.getBalance(session.getId())
                         .doOnNext(balance -> logger.info("Balance : {}", balance))
                         .doOnError(error -> logger.error("Error getting balance: {}", error.getMessage()))
-                ).map(tuple -> {
-            assert tuple.getT3().getBalance() != null;
-            return Rendering.view("cart")
-                    .modelAttribute("items", tuple.getT1())
-                    .modelAttribute("total", tuple.getT2())
-                    .modelAttribute("canBuy", tuple.getT3().getBalance().compareTo(tuple.getT2()) >= 0)
-                    .build();
-        });
+                ).map(tuple -> buildCartRendering(tuple.getT1(), tuple.getT2(), tuple.getT3().getBalance()));
     }
 
     @PostMapping("/cart/items")
@@ -85,13 +81,18 @@ public class CartController {
                 paymentsApi.getBalance(session.getId())
                         .doOnNext(balance -> logger.info("Balance : {}", balance))
                         .doOnError(error -> logger.info("Error getting balance: {}", error.getMessage()))
-            ).map(tuple -> {
-            assert tuple.getT3().getBalance() != null;
-            return Rendering.view("cart")
-                .modelAttribute("items", tuple.getT1())
-                .modelAttribute("total", tuple.getT2())
-                .modelAttribute("canBuy", tuple.getT3().getBalance().compareTo(tuple.getT2()) >= 0)
+            ).map(tuple -> buildCartRendering(tuple.getT1(), tuple.getT2(), tuple.getT3().getBalance()));
+    }
+
+    private Rendering buildCartRendering(List<ItemDto> items, BigDecimal total, BigDecimal balance) {
+        boolean canBuy = balance != null && balance.compareTo(total) >= 0;
+        boolean insufficientFunds = balance != null && !canBuy && !items.isEmpty();
+
+        return Rendering.view("cart")
+                .modelAttribute("items", items)
+                .modelAttribute("total", total)
+                .modelAttribute("canBuy", canBuy)
+                .modelAttribute("insufficientFunds", insufficientFunds)
                 .build();
-        });
     }
 }
