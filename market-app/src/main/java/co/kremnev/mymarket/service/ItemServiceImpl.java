@@ -33,18 +33,18 @@ public class ItemServiceImpl implements ItemService {
 
         return cacheService.get(cacheKey, CachedItemsPage.class)
                 .flatMap(cachedPage -> fetchFullItemsFromCache(cachedPage, pageable))
-                .switchIfEmpty(fetchFromDatabase(queryRequest, pageable, cacheKey));
+                .switchIfEmpty(Mono.defer(() -> fetchFromDatabase(queryRequest, pageable, cacheKey)));
     }
 
     @Override
     public Mono<Item> getById(Long id) {
         String key = ITEM_CACHE_KEY_PREFIX + id;
         return cacheService.get(key, Item.class)
-                .switchIfEmpty(
+                .switchIfEmpty(Mono.defer(() ->
                         itemRepository.findById(id)
                                 .flatMap(item -> cacheService.set(key, item)
                                         .thenReturn(item))
-                );
+                ));
     }
 
     private Pageable createPageable(ItemsQueryRequest queryRequest) {
