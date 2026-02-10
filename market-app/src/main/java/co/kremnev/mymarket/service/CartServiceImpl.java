@@ -1,6 +1,7 @@
 package co.kremnev.mymarket.service;
 
 import co.kremnev.mymarket.model.Cart;
+import co.kremnev.mymarket.model.CartAction;
 import co.kremnev.mymarket.model.CartItem;
 import co.kremnev.mymarket.repository.CartItemRepository;
 import co.kremnev.mymarket.repository.CartRepository;
@@ -68,15 +69,15 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    public Mono<Void> updateItemCount(String sessionId, Long itemId, String action) {
+    public Mono<Void> updateItemCount(String sessionId, Long itemId, CartAction action) {
         return getCartFromDb(sessionId)
                 .flatMap(cart -> cartItemRepository.findByCartIdAndItemId(cart.getId(), itemId)
                         .flatMap(cartItem -> {
                             // Item exists in cart - update or delete
-                            if (action.equals("DELETE")) {
+                            if (action == CartAction.DELETE) {
                                 return cartItemRepository.delete(cartItem).thenReturn(true);
                             }
-                            int delta = action.equals("PLUS") ? 1 : -1;
+                            int delta = action == CartAction.PLUS ? 1 : -1;
                             int newCount = cartItem.getQuantity() + delta;
 
                             if (newCount <= 0) {
@@ -88,7 +89,7 @@ public class CartServiceImpl implements CartService {
                         })
                         .switchIfEmpty(Mono.defer(() -> {
                             // Item not in cart - create new if action is PLUS
-                            if (action.equals("PLUS")) {
+                            if (action == CartAction.PLUS) {
                                 CartItem newItem = new CartItem();
                                 newItem.setCartId(cart.getId());
                                 newItem.setItemId(itemId);

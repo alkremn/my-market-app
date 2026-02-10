@@ -1,5 +1,6 @@
 package co.kremnev.mymarket.controller;
 
+import co.kremnev.mymarket.model.CartAction;
 import co.kremnev.mymarket.model.CartItem;
 import co.kremnev.mymarket.model.Item;
 import co.kremnev.payment.client.model.BalanceDto;
@@ -54,7 +55,7 @@ class CartControllerTest extends BaseControllerTest {
 
     @Test
     void addOrRemoveToCart_shouldUpdateCart_whenActionIsPlus() {
-        when(cartService.updateItemCount(anyString(), eq(1L), eq("PLUS")))
+        when(cartService.updateItemCount(anyString(), eq(1L), eq(CartAction.PLUS)))
                 .thenReturn(Mono.empty());
 
         webTestClient.post()
@@ -72,12 +73,12 @@ class CartControllerTest extends BaseControllerTest {
                 .expectStatus().is3xxRedirection()
                 .expectHeader().location("/items?search=&sort=NO&pageNumber=1&pageSize=5");
 
-        verify(cartService).updateItemCount(anyString(), eq(1L), eq("PLUS"));
+        verify(cartService).updateItemCount(anyString(), eq(1L), eq(CartAction.PLUS));
     }
 
     @Test
     void addOrRemoveToCart_shouldUpdateCart_whenActionIsMinus() {
-        when(cartService.updateItemCount(anyString(), eq(1L), eq("MINUS")))
+        when(cartService.updateItemCount(anyString(), eq(1L), eq(CartAction.MINUS)))
                 .thenReturn(Mono.empty());
 
         webTestClient.post()
@@ -95,12 +96,12 @@ class CartControllerTest extends BaseControllerTest {
                 .expectStatus().is3xxRedirection()
                 .expectHeader().location("/items?search=test&sort=PRICE&pageNumber=2&pageSize=10");
 
-        verify(cartService).updateItemCount(anyString(), eq(1L), eq("MINUS"));
+        verify(cartService).updateItemCount(anyString(), eq(1L), eq(CartAction.MINUS));
     }
 
     @Test
     void addOrRemoveToCart_shouldRedirectToItemDetail_whenIdInPath() {
-        when(cartService.updateItemCount(anyString(), eq(5L), eq("PLUS")))
+        when(cartService.updateItemCount(anyString(), eq(5L), eq(CartAction.PLUS)))
                 .thenReturn(Mono.empty());
 
         webTestClient.post()
@@ -118,14 +119,14 @@ class CartControllerTest extends BaseControllerTest {
                 .expectStatus().is3xxRedirection()
                 .expectHeader().location("/items/5");
 
-        verify(cartService).updateItemCount(anyString(), eq(5L), eq("PLUS"));
+        verify(cartService).updateItemCount(anyString(), eq(5L), eq(CartAction.PLUS));
     }
 
     @Test
     void updateCartFromCartPage_shouldUpdateAndReturnCartPage() {
         Flux<CartItem> cartItems = Flux.just(testCartItem);
 
-        when(cartService.updateItemCount(anyString(), eq(1L), eq("PLUS")))
+        when(cartService.updateItemCount(anyString(), eq(1L), eq(CartAction.PLUS)))
                 .thenReturn(Mono.empty());
         when(cartService.getCartItems(anyString()))
                 .thenReturn(cartItems);
@@ -142,7 +143,7 @@ class CartControllerTest extends BaseControllerTest {
                 .exchange()
                 .expectStatus().isOk();
 
-        verify(cartService).updateItemCount(anyString(), eq(1L), eq("PLUS"));
+        verify(cartService).updateItemCount(anyString(), eq(1L), eq(CartAction.PLUS));
         verify(cartService).getCartItems(anyString());
     }
 
@@ -161,6 +162,6 @@ class CartControllerTest extends BaseControllerTest {
                 .exchange()
                 .expectStatus().is4xxClientError();
 
-        verify(cartService, never()).updateItemCount(anyString(), anyLong(), eq("PLUS"));
+        verify(cartService, never()).updateItemCount(anyString(), anyLong(), eq(CartAction.PLUS));
     }
 }

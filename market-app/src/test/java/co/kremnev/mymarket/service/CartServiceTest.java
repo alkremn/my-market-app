@@ -1,6 +1,7 @@
 package co.kremnev.mymarket.service;
 
 import co.kremnev.mymarket.model.Cart;
+import co.kremnev.mymarket.model.CartAction;
 import co.kremnev.mymarket.model.CartItem;
 import co.kremnev.mymarket.model.Item;
 import co.kremnev.mymarket.repository.CartItemRepository;
@@ -132,7 +133,7 @@ class CartServiceTest {
         when(cartItemRepository.save(any(CartItem.class))).thenReturn(Mono.just(testCartItem1));
         when(cacheService.delete(CACHE_KEY)).thenReturn(Mono.just(1L));
 
-        StepVerifier.create(cartService.updateItemCount(SESSION_ID, 1L, "PLUS"))
+        StepVerifier.create(cartService.updateItemCount(SESSION_ID, 1L, CartAction.PLUS))
                 .verifyComplete();
 
         verify(cartItemRepository).save(any(CartItem.class));
@@ -148,7 +149,7 @@ class CartServiceTest {
         when(cartItemRepository.save(any(CartItem.class))).thenReturn(Mono.just(testCartItem1));
         when(cacheService.delete(CACHE_KEY)).thenReturn(Mono.just(1L));
 
-        StepVerifier.create(cartService.updateItemCount(SESSION_ID, 1L, "MINUS"))
+        StepVerifier.create(cartService.updateItemCount(SESSION_ID, 1L, CartAction.MINUS))
                 .verifyComplete();
 
         verify(cartItemRepository).save(any(CartItem.class));
@@ -163,7 +164,7 @@ class CartServiceTest {
         when(cartItemRepository.delete(any(CartItem.class))).thenReturn(Mono.empty());
         when(cacheService.delete(CACHE_KEY)).thenReturn(Mono.just(1L));
 
-        StepVerifier.create(cartService.updateItemCount(SESSION_ID, 1L, "MINUS"))
+        StepVerifier.create(cartService.updateItemCount(SESSION_ID, 1L, CartAction.MINUS))
                 .verifyComplete();
 
         verify(cartItemRepository).delete(any(CartItem.class));
@@ -177,7 +178,7 @@ class CartServiceTest {
         when(cartItemRepository.delete(any(CartItem.class))).thenReturn(Mono.empty());
         when(cacheService.delete(CACHE_KEY)).thenReturn(Mono.just(1L));
 
-        StepVerifier.create(cartService.updateItemCount(SESSION_ID, 1L, "DELETE"))
+        StepVerifier.create(cartService.updateItemCount(SESSION_ID, 1L, CartAction.DELETE))
                 .verifyComplete();
 
         verify(cartItemRepository).delete(testCartItem1);
@@ -191,7 +192,7 @@ class CartServiceTest {
         when(cartItemRepository.save(any(CartItem.class))).thenReturn(Mono.just(testCartItem1));
         when(cacheService.delete(CACHE_KEY)).thenReturn(Mono.just(1L));
 
-        StepVerifier.create(cartService.updateItemCount(SESSION_ID, 1L, "PLUS"))
+        StepVerifier.create(cartService.updateItemCount(SESSION_ID, 1L, CartAction.PLUS))
                 .verifyComplete();
 
         verify(cartItemRepository).save(any(CartItem.class));
