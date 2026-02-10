@@ -76,7 +76,7 @@ public class OrderServiceImpl implements OrderService {
                     var orderItems = cartItems.stream()
                             .map(cartItem -> {
                                 var orderItem = new OrderItem(cartItem.getItem(), cartItem.getQuantity());
-                                orderItem.setOrder(order);
+                                orderItem.setOrder(savedOrder);
                                 return orderItem;
                             })
                             .toList();
