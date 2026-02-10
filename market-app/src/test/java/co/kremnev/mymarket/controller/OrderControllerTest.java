@@ -1,22 +1,19 @@
 package co.kremnev.mymarket.controller;
 
-import co.kremnev.mymarket.model.CartItem;
-import co.kremnev.mymarket.model.Item;
 import co.kremnev.mymarket.model.Order;
-import co.kremnev.mymarket.service.CartService;
+import co.kremnev.mymarket.service.OrderProcessingService;
 import co.kremnev.mymarket.service.OrderService;
-import co.kremnev.payment.client.api.PaymentsApi;
-import co.kremnev.payment.client.model.PaymentResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -33,31 +30,12 @@ class OrderControllerTest {
     private OrderService orderService;
 
     @MockitoBean
-    private CartService cartService;
-
-    @MockitoBean
-    private PaymentsApi paymentsApi;
+    private OrderProcessingService orderProcessingService;
 
     private Order testOrder;
-    private Item testItem;
-    private CartItem testCartItem;
 
     @BeforeEach
     void setUp() {
-        testItem = Item.builder()
-                .id(1L)
-                .title("Test Item")
-                .description("Description")
-                .price(BigDecimal.valueOf(10.0))
-                .build();
-
-        testCartItem = new CartItem();
-        testCartItem.setId(1L);
-        testCartItem.setCartId(1L);
-        testCartItem.setItemId(1L);
-        testCartItem.setQuantity(2);
-        testCartItem.setItem(testItem);
-
         testOrder = new Order();
         testOrder.setId(1L);
         testOrder.setCreatedAt(LocalDateTime.now());
@@ -116,15 +94,8 @@ class OrderControllerTest {
     }
 
     @Test
-    void buy_shouldCreateOrderAndRedirect() {
-        when(cartService.getCartItems(anyString()))
-                .thenReturn(Flux.just(testCartItem));
-        when(cartService.getCartTotal(anyString()))
-                .thenReturn(Mono.just(BigDecimal.valueOf(20.0)));
-        when(paymentsApi.processPayment(any()))
-                .thenReturn(Mono.just(new PaymentResponse()));
-        when(orderService.create(anyList())).thenReturn(Mono.just(testOrder));
-        when(cartService.clear(anyString())).thenReturn(Mono.empty());
+    void buy_shouldCheckoutAndRedirect() {
+        when(orderProcessingService.checkout(anyString())).thenReturn(Mono.just(testOrder));
 
         webTestClient.post()
                 .uri("/buy")
@@ -132,27 +103,33 @@ class OrderControllerTest {
                 .expectStatus().is3xxRedirection()
                 .expectHeader().location("orders/1?newOrder=true");
 
-        verify(cartService).getCartItems(anyString());
-        verify(orderService).create(anyList());
-        verify(cartService).clear(anyString());
+        verify(orderProcessingService).checkout(anyString());
     }
 
     @Test
-    void buy_shouldClearCartAfterCreatingOrder() {
-        when(cartService.getCartItems(anyString()))
-                .thenReturn(Flux.just(testCartItem));
-        when(cartService.getCartTotal(anyString()))
-                .thenReturn(Mono.just(BigDecimal.valueOf(10.0)));
-        when(paymentsApi.processPayment(any()))
-                .thenReturn(Mono.just(new PaymentResponse()));
-        when(orderService.create(anyList())).thenReturn(Mono.just(testOrder));
-        when(cartService.clear(anyString())).thenReturn(Mono.empty());
+    void buy_shouldShowErrorPage_whenPaymentFails() {
+        when(orderProcessingService.checkout(anyString()))
+                .thenReturn(Mono.error(WebClientResponseException.create(
+                        HttpStatus.BAD_REQUEST.value(), "Bad Request", null, null, null)));
 
         webTestClient.post()
                 .uri("/buy")
                 .exchange()
-                .expectStatus().is3xxRedirection();
+                .expectStatus().isOk();
 
-        verify(cartService).clear(anyString());
+        verify(orderProcessingService).checkout(anyString());
+    }
+
+    @Test
+    void buy_shouldShowErrorPage_whenUnexpectedError() {
+        when(orderProcessingService.checkout(anyString()))
+                .thenReturn(Mono.error(new RuntimeException("Connection refused")));
+
+        webTestClient.post()
+                .uri("/buy")
+                .exchange()
+                .expectStatus().isOk();
+
+        verify(orderProcessingService).checkout(anyString());
     }
 }

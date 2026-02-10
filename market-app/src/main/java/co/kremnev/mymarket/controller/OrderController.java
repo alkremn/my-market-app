@@ -1,21 +1,19 @@
 package co.kremnev.mymarket.controller;
 
 import co.kremnev.mymarket.dto.OrderDto;
-import co.kremnev.mymarket.service.CartService;
+import co.kremnev.mymarket.service.OrderProcessingService;
 import co.kremnev.mymarket.service.OrderService;
-import co.kremnev.payment.client.api.PaymentsApi;
-import co.kremnev.payment.client.model.PaymentRequest;
 import jakarta.validation.constraints.Min;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.reactive.result.view.Rendering;
 import org.springframework.web.server.WebSession;
 import reactor.core.publisher.Mono;
@@ -26,14 +24,12 @@ public class OrderController {
     private static final Logger logger = LoggerFactory.getLogger(OrderController.class);
 
     private final OrderService orderService;
-    private final CartService cartService;
-    private final PaymentsApi paymentsApi;
+    private final OrderProcessingService orderProcessingService;
 
     @Autowired
-    public OrderController(OrderService orderService, CartService cartService, PaymentsApi paymentsApi) {
+    public OrderController(OrderService orderService, OrderProcessingService orderProcessingService) {
         this.orderService = orderService;
-        this.cartService = cartService;
-        this.paymentsApi = paymentsApi;
+        this.orderProcessingService = orderProcessingService;
     }
 
     @GetMapping("/orders")
@@ -46,7 +42,7 @@ public class OrderController {
     }
 
     @GetMapping("/orders/{id}")
-    public Mono<Rendering> getOrderById(@PathVariable @Min(1) long id, @RequestParam(required = false) String newOrder, Model model) {
+    public Mono<Rendering> getOrderById(@PathVariable @Min(1) long id, @RequestParam(required = false) String newOrder) {
         return orderService.getById(id)
                 .map(order -> Rendering.view("order")
                         .modelAttribute("order", OrderDto.from(order)).build())
@@ -54,18 +50,17 @@ public class OrderController {
     }
 
     @PostMapping("/buy")
-    public Mono<String> buy(WebSession session) {
-        String sessionId = session.getId();
-        return Mono.zip(
-                cartService.getCartItems(sessionId).collectList(),
-                cartService.getCartTotal(sessionId)
-        ).flatMap(tuple -> {
-            var items = tuple.getT1();
-            var total = tuple.getT2();
-            return paymentsApi.processPayment(new PaymentRequest().userId(sessionId).amount(total))
-                    .flatMap(paymentResult -> orderService.create(items))
-                    .flatMap(order -> cartService.clear(sessionId).thenReturn(order))
-                    .map(order -> "redirect:orders/" + order.getId() + "?newOrder=true");
-        }).doOnError(error -> logger.info("Error creating payment: {}", error.getMessage()));
+    public Mono<Rendering> buy(WebSession session) {
+        return orderProcessingService.checkout(session.getId())
+                .map(order -> Rendering.redirectTo("orders/" + order.getId() + "?newOrder=true").build())
+                .onErrorResume(e -> {
+                    logger.error("Checkout failed for session {}: {}", session.getId(), e.getMessage());
+                    String message = (e instanceof WebClientResponseException.BadRequest)
+                            ? "Оплата не прошла. Недостаточно средств на балансе."
+                            : "Произошла ошибка при оформлении заказа. Попробуйте позже.";
+                    return Mono.just(Rendering.view("checkout-error")
+                            .modelAttribute("errorMessage", message)
+                            .build());
+                });
     }
 }
