@@ -6,33 +6,31 @@ import co.kremnev.mymarket.repository.CartItemRepository;
 import co.kremnev.mymarket.repository.CartRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
-import java.time.Duration;
 
 @Service
 public class CartServiceImpl implements CartService {
     private static final Logger log = LoggerFactory.getLogger(CartServiceImpl.class);
     private static final String CART_CACHE_PREFIX = "cart:";
-    private static final Duration CACHE_TTL = Duration.ofMinutes(30);
 
+    private final ItemService itemService;
+    private final CacheService cacheService;
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
-    private final ItemService itemService;
-    private final ReactiveRedisTemplate<String, Object> redisTemplate;
+
 
     public CartServiceImpl(ItemService itemService,
+                           CacheService cacheService,
                            CartRepository cartRepository,
-                           CartItemRepository cartItemRepository,
-                           ReactiveRedisTemplate<String, Object> redisTemplate) {
+                           CartItemRepository cartItemRepository) {
         this.itemService = itemService;
+        this.cacheService = cacheService;
         this.cartRepository = cartRepository;
         this.cartItemRepository = cartItemRepository;
-        this.redisTemplate = redisTemplate;
     }
 
     private String cacheKey(String sessionId) {
@@ -43,14 +41,14 @@ public class CartServiceImpl implements CartService {
     public Mono<Cart> getCart(String sessionId) {
         String key = cacheKey(sessionId);
 
-        return redisTemplate.opsForValue().get(key)
+        return cacheService.get(key)
                 .cast(Cart.class)
                 .doOnNext(cart -> log.debug("Cache hit for cart: {}", sessionId))
                 .switchIfEmpty(Mono.defer(() -> {
                     log.debug("Cache miss for cart: {}", sessionId);
                     return getCartFromDb(sessionId)
-                            .flatMap(cart -> redisTemplate.opsForValue()
-                                    .set(key, cart, CACHE_TTL)
+                            .flatMap(cart -> cacheService
+                                    .set(key, cart)
                                     .thenReturn(cart));
                 }));
     }
@@ -106,7 +104,7 @@ public class CartServiceImpl implements CartService {
     }
 
     private Mono<Void> invalidateCache(String sessionId) {
-        return redisTemplate.delete(cacheKey(sessionId))
+        return cacheService.delete(cacheKey(sessionId))
                 .doOnSuccess(count -> log.debug("Invalidated cache for cart: {}, deleted: {}", sessionId, count))
                 .then();
     }
