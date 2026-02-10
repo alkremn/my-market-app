@@ -20,9 +20,9 @@ public class RedisConfig {
         return JsonMapper.builder()
                 .activateDefaultTyping(
                         BasicPolymorphicTypeValidator.builder()
-                                .allowIfBaseType("co.kremnev.mymarket.")
-                                .allowIfBaseType("java.util.")
-                                .allowIfBaseType("java.math.")
+                                .allowIfSubType("co.kremnev.mymarket.")
+                                .allowIfSubType("java.util.")
+                                .allowIfSubType("java.math.")
                                 .build(),
                         DefaultTyping.NON_FINAL
                 )

@@ -1,5 +1,6 @@
 package co.kremnev.mymarket.service;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -8,11 +9,13 @@ import java.time.Duration;
 
 @Service
 public class RedisCacheService implements CacheService {
-    private static final Duration CACHE_TTL = Duration.ofMinutes(30);
     private final ReactiveRedisTemplate<String, Object> redisTemplate;
+    private final Duration cacheTtl;
 
-    public RedisCacheService(ReactiveRedisTemplate<String, Object> redisTemplate) {
+    public RedisCacheService(ReactiveRedisTemplate<String, Object> redisTemplate,
+                             @Value("${cache.ttl:PT1M}") Duration cacheTtl) {
         this.redisTemplate = redisTemplate;
+        this.cacheTtl = cacheTtl;
     }
 
     @Override
@@ -24,7 +27,7 @@ public class RedisCacheService implements CacheService {
 
     @Override
     public Mono<Boolean> set(String key, Object value) {
-        return redisTemplate.opsForValue().set(key, value, CACHE_TTL);
+        return redisTemplate.opsForValue().set(key, value, cacheTtl);
     }
 
     @Override

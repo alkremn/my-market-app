@@ -10,9 +10,8 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-  cache:
-    redis:
-      time-to-live: PT1M
+cache:
+  ttl: PT1M
 
 payment:
   service:
