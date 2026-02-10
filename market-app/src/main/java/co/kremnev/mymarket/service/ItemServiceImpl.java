@@ -6,14 +6,11 @@ import co.kremnev.mymarket.dto.cache.CachedItemsPage;
 import co.kremnev.mymarket.model.Item;
 import co.kremnev.mymarket.repository.ItemRepository;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.*;
-import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.time.Duration;
 import java.util.List;
 
 @Service
@@ -22,15 +19,11 @@ public class ItemServiceImpl implements ItemService {
     private static final String LIST_CACHE_KEY_PREFIX = "list:";
 
     private final ItemRepository itemRepository;
-    private final ReactiveRedisTemplate<String, Object> redisTemplate;
-    private final Duration cacheTtl;
+    private final CacheService cacheService;
 
-    public ItemServiceImpl(ItemRepository itemRepository,
-                           ReactiveRedisTemplate<String, Object> redisTemplate,
-                           @Value("${spring.cache.redis.time-to-live:PT1M}") Duration cacheTtl) {
+    public ItemServiceImpl(ItemRepository itemRepository, CacheService cacheService) {
         this.itemRepository = itemRepository;
-        this.redisTemplate = redisTemplate;
-        this.cacheTtl = cacheTtl;
+        this.cacheService = cacheService;
     }
 
     @Override
@@ -38,8 +31,7 @@ public class ItemServiceImpl implements ItemService {
         String cacheKey = buildListCacheKey(queryRequest);
         Pageable pageable = createPageable(queryRequest);
 
-        return redisTemplate.opsForValue().get(cacheKey)
-                .cast(CachedItemsPage.class)
+        return cacheService.get(cacheKey, CachedItemsPage.class)
                 .flatMap(cachedPage -> fetchFullItemsFromCache(cachedPage, pageable))
                 .switchIfEmpty(fetchFromDatabase(queryRequest, pageable, cacheKey));
     }
@@ -47,12 +39,10 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public Mono<Item> getById(Long id) {
         String key = ITEM_CACHE_KEY_PREFIX + id;
-        return redisTemplate.opsForValue().get(key)
-                .cast(Item.class)
+        return cacheService.get(key, Item.class)
                 .switchIfEmpty(
                         itemRepository.findById(id)
-                                .flatMap(item -> redisTemplate.opsForValue()
-                                        .set(key, item,cacheTtl)
+                                .flatMap(item -> cacheService.set(key, item)
                                         .thenReturn(item))
                 );
     }
@@ -103,16 +93,14 @@ public class ItemServiceImpl implements ItemService {
                             .map(CachedItem::fromItem)
                             .toList();
                     CachedItemsPage cachedItemsPage = new CachedItemsPage(cachedItems, total);
-                    return redisTemplate.opsForValue()
-                            .set(cacheKey, cachedItemsPage, cacheTtl)
+                    return cacheService.set(cacheKey, cachedItemsPage)
                             .thenReturn(new PageImpl<>(items, pageable, total));
                 });
     }
 
     private Mono<Item> cacheItem(Item item) {
         String key = ITEM_CACHE_KEY_PREFIX + item.getId();
-        return redisTemplate.opsForValue()
-                .set(key, item, cacheTtl)
+        return cacheService.set(key, item)
                 .thenReturn(item);
     }
 }
