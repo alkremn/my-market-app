@@ -19,7 +19,8 @@ paths:
           description: User identification number
           required: true
           schema:
-            type: string
+            type: integer
+            format: int64
       responses:
         '200':
           description: Current balance
@@ -66,7 +67,8 @@ components:
       type: object
       properties:
         userId:
-          type: string
+          type: integer
+          format: int64
         balance:
           type: number
 
@@ -77,7 +79,8 @@ components:
         - amount
       properties:
         userId:
-          type: string
+          type: integer
+          format: int64
         amount:
           type: number
 

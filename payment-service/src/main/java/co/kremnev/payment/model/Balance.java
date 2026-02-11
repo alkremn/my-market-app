@@ -8,31 +8,30 @@ import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
-@Table("balance")
-public class Balance implements Persistable<UUID> {
+@Table("balances")
+public class Balance implements Persistable<Long> {
     @Id
     @Column("user_id")
-    private UUID userId;
+    private Long userId;
     private BigDecimal balance;
 
     @Transient
-    private boolean isNew =false;
+    private boolean isNew = false;
 
     public Balance() {}
 
-    public Balance(UUID userId, BigDecimal balance) {
+    public Balance(Long userId, BigDecimal balance) {
         this.userId = userId;
         this.balance = balance;
         this.isNew = true;
     }
 
-    public UUID getUserId() {
+    public Long getUserId() {
         return userId;
     }
 
-    public void setUserId(UUID userId) {
+    public void setUserId(Long userId) {
         this.userId = userId;
     }
 
@@ -45,7 +44,7 @@ public class Balance implements Persistable<UUID> {
     }
 
     @Override
-    public @Nullable UUID getId() {
+    public @Nullable Long getId() {
         return userId;
     }
 

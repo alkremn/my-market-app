@@ -23,10 +23,10 @@ public class PaymentController implements PaymentsApi {
     }
 
     @Override
-    public Mono<ResponseEntity<BalanceDto>> getBalance(String userId, ServerWebExchange exchange) {
+    public Mono<ResponseEntity<BalanceDto>> getBalance(Long userId, ServerWebExchange exchange) {
         return paymentService.getUserBalance(userId)
                 .map(balance -> new BalanceDto()
-                        .userId(balance.getUserId().toString()).balance(balance.getBalance()))
+                        .userId(balance.getUserId()).balance(balance.getBalance()))
                 .map(ResponseEntity::ok);
     }
 
