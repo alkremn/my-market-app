@@ -7,5 +7,6 @@ import reactor.core.publisher.Mono;
 
 public interface PaymentService {
     Mono<Balance> getUserBalance(Long userId);
+    Mono<Balance> createBalance(Long userId);
     Mono<PaymentResponse> createPayment(PaymentRequest request);
 }

@@ -4,9 +4,9 @@ services:
     image: postgres:16
     restart: always
     environment:
-      - POSTGRES_USER=marketadmin
-      - POSTGRES_PASSWORD=testpassword
-      - POSTGRES_DB=marketdb
+      POSTGRES_USER: marketadmin
+      POSTGRES_PASSWORD: testpassword
+      POSTGRES_DB: marketdb
     volumes:
       - ../market-app/src/main/resources/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
       - ../market-app/src/main/resources/seed-dev.sql:/docker-entrypoint-initdb.d/02_seed-dev.sql
@@ -20,11 +20,12 @@ services:
       dockerfile: payment-service/Dockerfile
     restart: on-failure
     environment:
-      - POSTGRES_USER=marketadmin
-      - POSTGRES_PASSWORD=testpassword
-      - DB_HOST=market-db
-      - DB_PORT=5432
-      - DB_NAME=marketdb
+      POSTGRES_USER: marketadmin
+      POSTGRES_PASSWORD: testpassword
+      DB_HOST: market-db
+      DB_PORT: 5432
+      DB_NAME: marketdb
+      KEYCLOAK_URL: http://keycloak:8080
     depends_on:
       - market-db
 
@@ -38,13 +39,14 @@ services:
       dockerfile: market-app/Dockerfile
     restart: on-failure
     environment:
-      - POSTGRES_USER=marketadmin
-      - POSTGRES_PASSWORD=testpassword
-      - DB_HOST=market-db
-      - DB_PORT=5432
-      - DB_NAME=marketdb
-      - PAYMENT_SERVICE_URL=http://payment-service:8081/api/v1
-      - REDIS_HOST=redis
+      POSTGRES_USER: marketadmin
+      POSTGRES_PASSWORD: testpassword
+      DB_HOST: market-db
+      DB_PORT: 5432
+      DB_NAME: marketdb
+      PAYMENT_SERVICE_URL: http://payment-service:8081/api/v1
+      REDIS_HOST: redis
+      KEYCLOAK_URL: http://keycloak:8080
     depends_on:
       - market-db
       - payment-service

@@ -13,6 +13,9 @@ public class Order {
     @Id
     private Long id;
 
+    @Column("user_id")
+    private Long userId;
+
     @Transient
     private List<OrderItem> orderItems;
 
@@ -23,6 +26,14 @@ public class Order {
 
     public Long getId() {
         return id;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 
     public List<OrderItem> getOrderItems() {

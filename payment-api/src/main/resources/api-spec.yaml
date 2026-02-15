@@ -29,6 +29,26 @@ paths:
               schema:
                 $ref: '#/components/schemas/BalanceDto'
 
+  /balances:
+    post:
+      operationId: createBalance
+      summary: Create initial balance for a new user
+      tags:
+        - Payments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBalanceRequest'
+      responses:
+        '201':
+          description: Balance created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceDto'
+
   /payments:
     post:
       operationId: processPayment
@@ -71,6 +91,15 @@ components:
           format: int64
         balance:
           type: number
+
+    CreateBalanceRequest:
+      type: object
+      required:
+        - userId
+      properties:
+        userId:
+          type: integer
+          format: int64
 
     PaymentRequest:
       type: object

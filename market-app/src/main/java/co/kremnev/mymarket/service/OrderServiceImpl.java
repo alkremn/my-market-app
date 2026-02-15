@@ -28,8 +28,8 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public Flux<Order> getAll() {
-        return orderRepository.findAll()
+    public Flux<Order> getAll(Long userId) {
+        return orderRepository.findAllByUserId(userId)
                 .flatMap(order -> orderItemRepository.findByOrderId(order.getId())
                         .flatMap(orderItem -> itemRepository.findById(orderItem.getItemId())
                                 .map(item -> {
@@ -48,8 +48,8 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public Mono<Order> getById(long id) {
-        return orderRepository.findById(id)
+    public Mono<Order> getById(long id, Long userId) {
+        return orderRepository.findByIdAndUserId(id, userId)
                 .flatMap(order -> orderItemRepository.findByOrderId(order.getId())
                         .flatMap(orderItem -> itemRepository.findById(orderItem.getItemId())
                                 .map(item -> {
@@ -66,11 +66,12 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public Mono<Order> create(List<CartItem> cartItems) {
-        if  (cartItems == null || cartItems.isEmpty()) {
+    public Mono<Order> create(List<CartItem> cartItems, Long userId) {
+        if (cartItems == null || cartItems.isEmpty()) {
             return Mono.error(new IllegalArgumentException("cartItems must not be null or empty"));
         }
         var order = new Order();
+        order.setUserId(userId);
         return orderRepository.save(order)
                 .flatMap(savedOrder -> {
                     var orderItems = cartItems.stream()
