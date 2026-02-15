@@ -34,28 +34,28 @@ class CartControllerTest extends BaseControllerTest {
         testCartItem.setItem(testItem);
 
         testBalance = new BalanceDto()
-                .userId("test-session")
+                .userId(1L)
                 .balance(BigDecimal.valueOf(100.0));
     }
 
     @Test
     void getCartItems_shouldDisplayCartPage() {
         Flux<CartItem> cartItems = Flux.just(testCartItem);
-        when(cartService.getCartItems(anyString())).thenReturn(cartItems);
-        when(cartService.getCartTotal(anyString())).thenReturn(Mono.just(BigDecimal.valueOf(20.0)));
-        when(paymentsApi.getBalance(anyString())).thenReturn(Mono.just(testBalance));
+        when(cartService.getCartItems(anyLong())).thenReturn(cartItems);
+        when(cartService.getCartTotal(anyLong())).thenReturn(Mono.just(BigDecimal.valueOf(20.0)));
+        when(paymentsApi.getBalance(anyLong())).thenReturn(Mono.just(testBalance));
 
         webTestClient.get()
                 .uri("/cart/items")
                 .exchange()
                 .expectStatus().isOk();
 
-        verify(cartService).getCartItems(anyString());
+        verify(cartService).getCartItems(anyLong());
     }
 
     @Test
     void addOrRemoveToCart_shouldUpdateCart_whenActionIsPlus() {
-        when(cartService.updateItemCount(anyString(), eq(1L), eq(CartAction.PLUS)))
+        when(cartService.updateItemCount(anyLong(), eq(1L), eq(CartAction.PLUS)))
                 .thenReturn(Mono.empty());
 
         webTestClient.post()
@@ -73,12 +73,12 @@ class CartControllerTest extends BaseControllerTest {
                 .expectStatus().is3xxRedirection()
                 .expectHeader().location("/items?search=&sort=NO&pageNumber=1&pageSize=5");
 
-        verify(cartService).updateItemCount(anyString(), eq(1L), eq(CartAction.PLUS));
+        verify(cartService).updateItemCount(anyLong(), eq(1L), eq(CartAction.PLUS));
     }
 
     @Test
     void addOrRemoveToCart_shouldUpdateCart_whenActionIsMinus() {
-        when(cartService.updateItemCount(anyString(), eq(1L), eq(CartAction.MINUS)))
+        when(cartService.updateItemCount(anyLong(), eq(1L), eq(CartAction.MINUS)))
                 .thenReturn(Mono.empty());
 
         webTestClient.post()
@@ -96,12 +96,12 @@ class CartControllerTest extends BaseControllerTest {
                 .expectStatus().is3xxRedirection()
                 .expectHeader().location("/items?search=test&sort=PRICE&pageNumber=2&pageSize=10");
 
-        verify(cartService).updateItemCount(anyString(), eq(1L), eq(CartAction.MINUS));
+        verify(cartService).updateItemCount(anyLong(), eq(1L), eq(CartAction.MINUS));
     }
 
     @Test
     void addOrRemoveToCart_shouldRedirectToItemDetail_whenIdInPath() {
-        when(cartService.updateItemCount(anyString(), eq(5L), eq(CartAction.PLUS)))
+        when(cartService.updateItemCount(anyLong(), eq(5L), eq(CartAction.PLUS)))
                 .thenReturn(Mono.empty());
 
         webTestClient.post()
@@ -119,20 +119,20 @@ class CartControllerTest extends BaseControllerTest {
                 .expectStatus().is3xxRedirection()
                 .expectHeader().location("/items/5");
 
-        verify(cartService).updateItemCount(anyString(), eq(5L), eq(CartAction.PLUS));
+        verify(cartService).updateItemCount(anyLong(), eq(5L), eq(CartAction.PLUS));
     }
 
     @Test
     void updateCartFromCartPage_shouldUpdateAndReturnCartPage() {
         Flux<CartItem> cartItems = Flux.just(testCartItem);
 
-        when(cartService.updateItemCount(anyString(), eq(1L), eq(CartAction.PLUS)))
+        when(cartService.updateItemCount(anyLong(), eq(1L), eq(CartAction.PLUS)))
                 .thenReturn(Mono.empty());
-        when(cartService.getCartItems(anyString()))
+        when(cartService.getCartItems(anyLong()))
                 .thenReturn(cartItems);
-        when(cartService.getCartTotal(anyString()))
+        when(cartService.getCartTotal(anyLong()))
                 .thenReturn(Mono.just(BigDecimal.valueOf(30.0)));
-        when(paymentsApi.getBalance(anyString())).thenReturn(Mono.just(testBalance));
+        when(paymentsApi.getBalance(anyLong())).thenReturn(Mono.just(testBalance));
 
         webTestClient.post()
                 .uri(uriBuilder -> uriBuilder
@@ -143,8 +143,8 @@ class CartControllerTest extends BaseControllerTest {
                 .exchange()
                 .expectStatus().isOk();
 
-        verify(cartService).updateItemCount(anyString(), eq(1L), eq(CartAction.PLUS));
-        verify(cartService).getCartItems(anyString());
+        verify(cartService).updateItemCount(anyLong(), eq(1L), eq(CartAction.PLUS));
+        verify(cartService).getCartItems(anyLong());
     }
 
     @Test
@@ -162,6 +162,6 @@ class CartControllerTest extends BaseControllerTest {
                 .exchange()
                 .expectStatus().is4xxClientError();
 
-        verify(cartService, never()).updateItemCount(anyString(), anyLong(), eq(CartAction.PLUS));
+        verify(cartService, never()).updateItemCount(anyLong(), anyLong(), eq(CartAction.PLUS));
     }
 }

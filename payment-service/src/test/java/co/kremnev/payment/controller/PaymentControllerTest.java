@@ -14,7 +14,6 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -28,28 +27,28 @@ class PaymentControllerTest {
     @MockitoBean
     private PaymentService paymentService;
 
-    private UUID testUserId;
+    private Long testUserId;
     private Balance testBalance;
 
     @BeforeEach
     void setUp() {
-        testUserId = UUID.randomUUID();
+        testUserId = 1L;
         testBalance = new Balance(testUserId, BigDecimal.valueOf(500.00));
     }
 
     @Test
     void getBalance_shouldReturnBalance() {
-        when(paymentService.getUserBalance(testUserId.toString())).thenReturn(Mono.just(testBalance));
+        when(paymentService.getUserBalance(testUserId)).thenReturn(Mono.just(testBalance));
 
         webTestClient.get()
-                .uri("/balance/{userId}", testUserId.toString())
+                .uri("/balance/{userId}", testUserId)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
-                .jsonPath("$.userId").isEqualTo(testUserId.toString())
+                .jsonPath("$.userId").isEqualTo(testUserId)
                 .jsonPath("$.balance").isEqualTo(500.00);
 
-        verify(paymentService).getUserBalance(testUserId.toString());
+        verify(paymentService).getUserBalance(testUserId);
     }
 
     @Test
@@ -64,7 +63,7 @@ class PaymentControllerTest {
                 .uri("/payments")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(new PaymentRequest()
-                        .userId(testUserId.toString())
+                        .userId(testUserId)
                         .amount(BigDecimal.valueOf(100.00)))
                 .exchange()
                 .expectStatus().isOk()
@@ -87,7 +86,7 @@ class PaymentControllerTest {
                 .uri("/payments")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(new PaymentRequest()
-                        .userId(testUserId.toString())
+                        .userId(testUserId)
                         .amount(BigDecimal.valueOf(600.00)))
                 .exchange()
                 .expectStatus().isOk()

@@ -1,10 +1,12 @@
 package co.kremnev.mymarket.controller;
 
+import co.kremnev.mymarket.model.SecurityUser;
 import co.kremnev.payment.client.api.PaymentsApi;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -13,7 +15,6 @@ import co.kremnev.mymarket.dto.ItemDto;
 import co.kremnev.mymarket.dto.Request.CartCommandRequest;
 import co.kremnev.mymarket.service.CartService;
 import org.springframework.web.reactive.result.view.Rendering;
-import org.springframework.web.server.WebSession;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -36,8 +37,8 @@ public class CartController {
 
     @PostMapping("/items")
     public Mono<Rendering> addOrRemoveItemInCart(@ModelAttribute @Valid CartCommandRequest request,
-                                                 WebSession session) {
-        return cartService.updateItemCount(session.getId(), request.id(), request.action())
+                                                 @AuthenticationPrincipal SecurityUser principal) {
+        return cartService.updateItemCount(principal.getId(), request.id(), request.action())
                 .then(Mono.just(Rendering.redirectTo(
                         "/items?search=" + request.search() +
                                 "&sort=" + request.sort() +
@@ -49,36 +50,37 @@ public class CartController {
     public Mono<Rendering> addOrRemoveItemInCartById(
             @PathVariable(required = false) String id,
             @ModelAttribute @Valid CartCommandRequest request,
-            WebSession session
+            @AuthenticationPrincipal SecurityUser principal
     ) {
-        return cartService.updateItemCount(session.getId(), request.id(), request.action())
+        return cartService.updateItemCount(principal.getId(), request.id(), request.action())
                 .then(Mono.just(Rendering.redirectTo("/items/" + id).build()));
     }
 
     @GetMapping("/cart/items")
-    public Mono<Rendering> getItems(WebSession session) {
-        Flux<ItemDto> itemsFlux = cartService.getCartItems(session.getId())
+    public Mono<Rendering> getItems(@AuthenticationPrincipal SecurityUser principal) {
+        Flux<ItemDto> itemsFlux = cartService.getCartItems(principal.getId())
                 .map(cartItem -> ItemDto.from(cartItem.getItem(), cartItem.getQuantity()));
 
         return Mono.zip(
                 itemsFlux.collectList(),
-                cartService.getCartTotal(session.getId()),
-                paymentsApi.getBalance(session.getId())
+                cartService.getCartTotal(principal.getId()),
+                paymentsApi.getBalance(principal.getId())
                         .doOnNext(balance -> logger.info("Balance : {}", balance))
                         .doOnError(error -> logger.error("Error getting balance: {}", error.getMessage()))
                 ).map(tuple -> buildCartRendering(tuple.getT1(), tuple.getT2(), tuple.getT3().getBalance()));
     }
 
     @PostMapping("/cart/items")
-    public Mono<Rendering> updateItems(@ModelAttribute @Valid CartCommandRequest request, WebSession session) {
-        Flux<ItemDto> itemsFlux = cartService.updateItemCount(session.getId(), request.id(),  request.action())
-                .thenMany(cartService.getCartItems(session.getId()))
+    public Mono<Rendering> updateItems(@ModelAttribute @Valid CartCommandRequest request,
+                                       @AuthenticationPrincipal SecurityUser principal) {
+        Flux<ItemDto> itemsFlux = cartService.updateItemCount(principal.getId(), request.id(), request.action())
+                .thenMany(cartService.getCartItems(principal.getId()))
                 .map(cartItem -> ItemDto.from(cartItem.getItem(), cartItem.getQuantity()));
 
         return Mono.zip(
                 itemsFlux.collectList(),
-                cartService.getCartTotal(session.getId()),
-                paymentsApi.getBalance(session.getId())
+                cartService.getCartTotal(principal.getId()),
+                paymentsApi.getBalance(principal.getId())
                         .doOnNext(balance -> logger.info("Balance : {}", balance))
                         .doOnError(error -> logger.info("Error getting balance: {}", error.getMessage()))
             ).map(tuple -> buildCartRendering(tuple.getT1(), tuple.getT2(), tuple.getT3().getBalance()));

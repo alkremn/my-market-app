@@ -4,17 +4,12 @@ import co.kremnev.mymarket.dto.Request.ItemsQueryRequest;
 import co.kremnev.mymarket.model.Cart;
 import co.kremnev.mymarket.model.CartItem;
 import co.kremnev.mymarket.model.Item;
-import co.kremnev.mymarket.service.CartService;
-import co.kremnev.mymarket.service.ItemService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
@@ -23,20 +18,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 @WebFluxTest(ItemController.class)
-class ItemControllerTest {
-
-    @Autowired
-    private WebTestClient webTestClient;
-
-    @MockitoBean
-    private ItemService itemService;
-
-    @MockitoBean
-    private CartService cartService;
+class ItemControllerTest extends BaseControllerTest {
 
     private Item testItem1;
     private Item testItem2;
@@ -66,12 +52,14 @@ class ItemControllerTest {
 
         testCart = new Cart();
         testCart.setId(1L);
-        testCart.setSessionId("test-session");
+        testCart.setUserId(1L);
         testCart.setItems(new ArrayList<>());
     }
 
     @Test
-    void getItems_shouldDisplayItemsPage() {
+    void getItems_shouldDisplayItemsPage_anonymous() {
+        TestSecurityConfig.MOCK_CONTEXT.set(null);
+
         Page<Item> page = new PageImpl<>(
                 List.of(testItem1, testItem2),
                 PageRequest.of(0, 5),
@@ -79,7 +67,6 @@ class ItemControllerTest {
         );
 
         when(itemService.getAllItems(any(ItemsQueryRequest.class))).thenReturn(Mono.just(page));
-        when(cartService.getCart(anyString())).thenReturn(Mono.just(testCart));
 
         webTestClient.get()
                 .uri("/items")
@@ -87,11 +74,13 @@ class ItemControllerTest {
                 .expectStatus().isOk();
 
         verify(itemService).getAllItems(any(ItemsQueryRequest.class));
-        verify(cartService).getCart(anyString());
+        verify(cartService, never()).getCart(anyLong());
     }
 
     @Test
     void getItems_shouldDisplayItemsPageAtRootUrl() {
+        TestSecurityConfig.MOCK_CONTEXT.set(null);
+
         Page<Item> page = new PageImpl<>(
                 List.of(testItem1),
                 PageRequest.of(0, 5),
@@ -99,7 +88,6 @@ class ItemControllerTest {
         );
 
         when(itemService.getAllItems(any(ItemsQueryRequest.class))).thenReturn(Mono.just(page));
-        when(cartService.getCart(anyString())).thenReturn(Mono.just(testCart));
 
         webTestClient.get()
                 .uri("/")
@@ -111,6 +99,8 @@ class ItemControllerTest {
 
     @Test
     void getItems_shouldAcceptSearchParameter() {
+        TestSecurityConfig.MOCK_CONTEXT.set(null);
+
         Page<Item> page = new PageImpl<>(
                 List.of(testItem1),
                 PageRequest.of(0, 5),
@@ -118,7 +108,6 @@ class ItemControllerTest {
         );
 
         when(itemService.getAllItems(any(ItemsQueryRequest.class))).thenReturn(Mono.just(page));
-        when(cartService.getCart(anyString())).thenReturn(Mono.just(testCart));
 
         webTestClient.get()
                 .uri(uriBuilder -> uriBuilder
@@ -133,6 +122,8 @@ class ItemControllerTest {
 
     @Test
     void getItems_shouldAcceptSortParameter() {
+        TestSecurityConfig.MOCK_CONTEXT.set(null);
+
         Page<Item> page = new PageImpl<>(
                 List.of(testItem1, testItem2),
                 PageRequest.of(0, 5),
@@ -140,7 +131,6 @@ class ItemControllerTest {
         );
 
         when(itemService.getAllItems(any(ItemsQueryRequest.class))).thenReturn(Mono.just(page));
-        when(cartService.getCart(anyString())).thenReturn(Mono.just(testCart));
 
         webTestClient.get()
                 .uri(uriBuilder -> uriBuilder
@@ -155,6 +145,8 @@ class ItemControllerTest {
 
     @Test
     void getItems_shouldAcceptPaginationParameters() {
+        TestSecurityConfig.MOCK_CONTEXT.set(null);
+
         Page<Item> page = new PageImpl<>(
                 List.of(testItem1),
                 PageRequest.of(1, 10),
@@ -162,7 +154,6 @@ class ItemControllerTest {
         );
 
         when(itemService.getAllItems(any(ItemsQueryRequest.class))).thenReturn(Mono.just(page));
-        when(cartService.getCart(anyString())).thenReturn(Mono.just(testCart));
 
         webTestClient.get()
                 .uri(uriBuilder -> uriBuilder
@@ -178,6 +169,8 @@ class ItemControllerTest {
 
     @Test
     void getItems_shouldDisplayEmptyPage() {
+        TestSecurityConfig.MOCK_CONTEXT.set(null);
+
         Page<Item> page = new PageImpl<>(
                 List.of(),
                 PageRequest.of(0, 5),
@@ -185,7 +178,6 @@ class ItemControllerTest {
         );
 
         when(itemService.getAllItems(any(ItemsQueryRequest.class))).thenReturn(Mono.just(page));
-        when(cartService.getCart(anyString())).thenReturn(Mono.just(testCart));
 
         webTestClient.get()
                 .uri("/items")
@@ -197,8 +189,9 @@ class ItemControllerTest {
 
     @Test
     void getItem_shouldDisplayItemPage_whenItemExists() {
+        TestSecurityConfig.MOCK_CONTEXT.set(null);
+
         when(itemService.getById(1L)).thenReturn(Mono.just(testItem1));
-        when(cartService.getCart(anyString())).thenReturn(Mono.just(testCart));
 
         webTestClient.get()
                 .uri("/items/1")
@@ -206,13 +199,14 @@ class ItemControllerTest {
                 .expectStatus().isOk();
 
         verify(itemService).getById(1L);
-        verify(cartService).getCart(anyString());
+        verify(cartService, never()).getCart(anyLong());
     }
 
     @Test
     void getItem_shouldReturnNotFoundView_whenItemDoesNotExist() {
+        TestSecurityConfig.MOCK_CONTEXT.set(null);
+
         when(itemService.getById(999L)).thenReturn(Mono.empty());
-        when(cartService.getCart(anyString())).thenReturn(Mono.just(testCart));
 
         webTestClient.get()
                 .uri("/items/999")
@@ -223,7 +217,26 @@ class ItemControllerTest {
     }
 
     @Test
-    void getItem_shouldShowCartQuantity_whenItemInCart() {
+    void getItems_shouldLoadCart_whenAuthenticated() {
+        Page<Item> page = new PageImpl<>(
+                List.of(testItem1),
+                PageRequest.of(0, 5),
+                1
+        );
+
+        when(itemService.getAllItems(any(ItemsQueryRequest.class))).thenReturn(Mono.just(page));
+        when(cartService.getCart(1L)).thenReturn(Mono.just(testCart));
+
+        webTestClient.get()
+                .uri("/items")
+                .exchange()
+                .expectStatus().isOk();
+
+        verify(cartService).getCart(1L);
+    }
+
+    @Test
+    void getItem_shouldShowCartQuantity_whenAuthenticated() {
         CartItem cartItem = new CartItem();
         cartItem.setId(1L);
         cartItem.setCartId(testCart.getId());
@@ -232,14 +245,13 @@ class ItemControllerTest {
         testCart.setItems(List.of(cartItem));
 
         when(itemService.getById(1L)).thenReturn(Mono.just(testItem1));
-        when(cartService.getCart(anyString())).thenReturn(Mono.just(testCart));
+        when(cartService.getCart(1L)).thenReturn(Mono.just(testCart));
 
         webTestClient.get()
                 .uri("/items/1")
                 .exchange()
                 .expectStatus().isOk();
 
-        verify(itemService).getById(1L);
-        verify(cartService).getCart(anyString());
+        verify(cartService).getCart(1L);
     }
 }

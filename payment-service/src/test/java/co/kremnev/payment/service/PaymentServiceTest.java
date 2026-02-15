@@ -13,7 +13,6 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -27,13 +26,13 @@ class PaymentServiceTest {
 
     private PaymentServiceImpl paymentService;
 
-    private UUID testUserId;
+    private Long testUserId;
     private Balance testBalance;
 
     @BeforeEach
     void setUp() {
         paymentService = new PaymentServiceImpl(paymentRepository);
-        testUserId = UUID.randomUUID();
+        testUserId = 1L;
         testBalance = new Balance(testUserId, BigDecimal.valueOf(500.00));
     }
 
@@ -41,7 +40,7 @@ class PaymentServiceTest {
     void getUserBalance_shouldReturnExistingBalance() {
         when(paymentRepository.findById(testUserId)).thenReturn(Mono.just(testBalance));
 
-        StepVerifier.create(paymentService.getUserBalance(testUserId.toString()))
+        StepVerifier.create(paymentService.getUserBalance(testUserId))
                 .assertNext(balance -> {
                     assertEquals(testUserId, balance.getUserId());
                     assertEquals(BigDecimal.valueOf(500.00), balance.getBalance());
@@ -53,14 +52,24 @@ class PaymentServiceTest {
     }
 
     @Test
-    void getUserBalance_shouldCreateNewBalance_whenUserNotFound() {
+    void getUserBalance_shouldReturnEmpty_whenUserNotFound() {
         when(paymentRepository.findById(testUserId)).thenReturn(Mono.empty());
+
+        StepVerifier.create(paymentService.getUserBalance(testUserId))
+                .verifyComplete();
+
+        verify(paymentRepository).findById(testUserId);
+        verify(paymentRepository, never()).save(any());
+    }
+
+    @Test
+    void createBalance_shouldCreateNewBalance() {
         when(paymentRepository.save(any(Balance.class))).thenAnswer(invocation -> {
             Balance balance = invocation.getArgument(0);
             return Mono.just(balance);
         });
 
-        StepVerifier.create(paymentService.getUserBalance(testUserId.toString()))
+        StepVerifier.create(paymentService.createBalance(testUserId))
                 .assertNext(balance -> {
                     assertEquals(testUserId, balance.getUserId());
                     assertNotNull(balance.getBalance());
@@ -75,7 +84,7 @@ class PaymentServiceTest {
     @Test
     void createPayment_shouldSucceed_whenSufficientBalance() {
         PaymentRequest request = new PaymentRequest()
-                .userId(testUserId.toString())
+                .userId(testUserId)
                 .amount(BigDecimal.valueOf(100.00));
 
         when(paymentRepository.findById(testUserId)).thenReturn(Mono.just(testBalance));
@@ -99,7 +108,7 @@ class PaymentServiceTest {
     @Test
     void createPayment_shouldFail_whenInsufficientBalance() {
         PaymentRequest request = new PaymentRequest()
-                .userId(testUserId.toString())
+                .userId(testUserId)
                 .amount(BigDecimal.valueOf(600.00));
 
         when(paymentRepository.findById(testUserId)).thenReturn(Mono.just(testBalance));
@@ -117,7 +126,7 @@ class PaymentServiceTest {
     @Test
     void createPayment_shouldFail_whenUserNotFound() {
         PaymentRequest request = new PaymentRequest()
-                .userId(testUserId.toString())
+                .userId(testUserId)
                 .amount(BigDecimal.valueOf(100.00));
 
         when(paymentRepository.findById(testUserId)).thenReturn(Mono.empty());
@@ -134,7 +143,7 @@ class PaymentServiceTest {
     @Test
     void createPayment_shouldSucceed_whenExactBalance() {
         PaymentRequest request = new PaymentRequest()
-                .userId(testUserId.toString())
+                .userId(testUserId)
                 .amount(BigDecimal.valueOf(500.00));
 
         when(paymentRepository.findById(testUserId)).thenReturn(Mono.just(testBalance));
