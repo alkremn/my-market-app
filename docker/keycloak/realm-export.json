@@ -36,5 +36,15 @@
         }
       ]
     }
-  }
+  },
+  "users": [
+    {
+      "username": "service-account-payment-client",
+      "enabled": true,
+      "serviceAccountClientId": "payment-client",
+      "clientRoles": {
+        "payment-service": ["payment.balance.manage"]
+      }
+    }
+  ]
 }
