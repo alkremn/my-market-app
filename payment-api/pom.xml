@@ -48,6 +48,8 @@
                             <generatorName>spring</generatorName>
                             <apiPackage>co.kremnev.payment.api</apiPackage>
                             <modelPackage>co.kremnev.payment.model</modelPackage>
+                            <generateApiTests>false</generateApiTests>
+                            <generateModelTests>false</generateModelTests>
                             <configOptions>
                                 <interfaceOnly>true</interfaceOnly>
                                 <skipDefaultInterface>true</skipDefaultInterface>
@@ -69,6 +71,8 @@
                             <apiPackage>co.kremnev.payment.client.api</apiPackage>
                             <modelPackage>co.kremnev.payment.client.model</modelPackage>
                             <invokerPackage>co.kremnev.payment.client</invokerPackage>
+                            <generateApiTests>false</generateApiTests>
+                            <generateModelTests>false</generateModelTests>
                             <configOptions>
                                 <library>webclient</library>
                                 <useJakartaEe>true</useJakartaEe>

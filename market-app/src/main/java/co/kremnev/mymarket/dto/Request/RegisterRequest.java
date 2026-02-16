@@ -4,9 +4,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record RegisterRequest(
-        @NotBlank(message = "Username is required")
+        @NotBlank(message = "Имя пользователя обязательно")
         String username,
-        @NotBlank(message = "Password is required")
-        @Size(min = 4, message = "Password must be at least 4 characters")
+        @NotBlank(message = "Пароль обязателен")
+        @Size(min = 8, message = "Пароль должен быть не менее 8 символов")
         String password
 ) {}

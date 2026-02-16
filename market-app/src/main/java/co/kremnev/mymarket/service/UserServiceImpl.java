@@ -41,7 +41,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public Mono<UserDetails> findByUsername(String username) {
         return userRepository.findByUsername(username)
-                .switchIfEmpty(Mono.error(new UsernameNotFoundException("User not found: " + username)))
+                .switchIfEmpty(Mono.error(new UsernameNotFoundException("Пользователь не найден: " + username)))
                 .map(SecurityUser::new);
     }
 
@@ -58,14 +58,14 @@ public class UserServiceImpl implements UserService {
         var user = new User(username, passwordEncoder.encode(rawPassword));
         return userRepository.save(user)
                 .onErrorMap(DataIntegrityViolationException.class,
-                        e -> new IllegalArgumentException("Username already taken: " + username))
+                        e -> new IllegalArgumentException("Имя пользователя уже занято"))
                 .flatMap(saved -> paymentsApi.createBalance(new CreateBalanceRequest().userId(saved.getId()))
                         .thenReturn(saved)
                         .onErrorResume(e -> {
                             log.error("Balance creation failed for user {}, rolling back", saved.getId(), e);
                             return userRepository.delete(saved)
                                     .then(Mono.error(new RuntimeException(
-                                            "Registration failed: unable to initialize account. Please try again.")));
+                                            "Ошибка регистрации: не удалось создать аккаунт. Попробуйте позже.")));
                         }));
     }
 
