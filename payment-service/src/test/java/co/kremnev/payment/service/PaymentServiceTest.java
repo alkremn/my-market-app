@@ -64,6 +64,7 @@ class PaymentServiceTest {
 
     @Test
     void createBalance_shouldCreateNewBalance() {
+        when(paymentRepository.findById(testUserId)).thenReturn(Mono.empty());
         when(paymentRepository.save(any(Balance.class))).thenAnswer(invocation -> {
             Balance balance = invocation.getArgument(0);
             return Mono.just(balance);
@@ -79,6 +80,17 @@ class PaymentServiceTest {
                 .verifyComplete();
 
         verify(paymentRepository).save(any(Balance.class));
+    }
+
+    @Test
+    void createBalance_shouldFail_whenBalanceAlreadyExists() {
+        when(paymentRepository.findById(testUserId)).thenReturn(Mono.just(testBalance));
+
+        StepVerifier.create(paymentService.createBalance(testUserId))
+                .expectError(BalanceAlreadyExistsException.class)
+                .verify();
+
+        verify(paymentRepository, never()).save(any());
     }
 
     @Test

@@ -15,6 +15,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.server.context.ServerSecurityContextRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
@@ -54,6 +55,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public Mono<User> registerUser(String username, String rawPassword) {
         var user = new User(username, passwordEncoder.encode(rawPassword));
         return userRepository.save(user)
@@ -61,12 +63,12 @@ public class UserServiceImpl implements UserService {
                         e -> new IllegalArgumentException("Имя пользователя уже занято"))
                 .flatMap(saved -> paymentsApi.createBalance(new CreateBalanceRequest().userId(saved.getId()))
                         .thenReturn(saved)
-                        .onErrorResume(e -> {
-                            log.error("Balance creation failed for user {}, rolling back", saved.getId(), e);
-                            return userRepository.delete(saved)
-                                    .then(Mono.error(new RuntimeException(
-                                            "Ошибка регистрации: не удалось создать аккаунт. Попробуйте позже.")));
-                        }));
+                        .onErrorMap(e -> !(e instanceof IllegalArgumentException),
+                                e -> {
+                                    log.error("Balance creation failed for user {}", saved.getId(), e);
+                                    return new RuntimeException(
+                                            "Ошибка регистрации: не удалось создать аккаунт. Попробуйте позже.");
+                                }));
     }
 
     @Override

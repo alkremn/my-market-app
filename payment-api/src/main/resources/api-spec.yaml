@@ -48,6 +48,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BalanceDto'
+        '409':
+          description: Balance already exists for this user
 
   /payments:
     post:

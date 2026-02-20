@@ -29,8 +29,14 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public Mono<Balance> createBalance(Long userId) {
-        var amount = new BigDecimal(randomAmount()).setScale(2, RoundingMode.HALF_EVEN);
-        return paymentRepository.save(new Balance(userId, amount));
+        return paymentRepository.findById(userId)
+                .flatMap(existing -> Mono.<Balance>error(
+                        new BalanceAlreadyExistsException(userId)))
+                .switchIfEmpty(Mono.defer(() -> {
+                    var amount = new BigDecimal(randomAmount())
+                            .setScale(2, RoundingMode.HALF_EVEN);
+                    return paymentRepository.save(new Balance(userId, amount));
+                }));
     }
 
     @Override

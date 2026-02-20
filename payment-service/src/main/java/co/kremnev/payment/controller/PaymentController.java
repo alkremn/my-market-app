@@ -6,6 +6,7 @@ import co.kremnev.payment.model.BalanceDto;
 import co.kremnev.payment.model.CreateBalanceRequest;
 import co.kremnev.payment.model.PaymentRequest;
 import co.kremnev.payment.model.PaymentResponse;
+import co.kremnev.payment.service.BalanceAlreadyExistsException;
 import co.kremnev.payment.service.PaymentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -30,7 +31,9 @@ public class PaymentController implements PaymentsApi {
                 .flatMap(req -> paymentService.createBalance(req.getUserId()))
                 .map(balance -> new BalanceDto()
                         .userId(balance.getUserId()).balance(balance.getBalance()))
-                .map(dto -> ResponseEntity.status(HttpStatus.CREATED).body(dto));
+                .map(dto -> ResponseEntity.status(HttpStatus.CREATED).body(dto))
+                .onErrorReturn(BalanceAlreadyExistsException.class,
+                        ResponseEntity.status(HttpStatus.CONFLICT).build());
     }
 
     @Override
