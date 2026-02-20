@@ -45,7 +45,7 @@ class CartControllerTest extends BaseControllerTest {
         when(cartService.getCartTotal(anyLong())).thenReturn(Mono.just(BigDecimal.valueOf(20.0)));
         when(paymentsApi.getBalance(anyLong())).thenReturn(Mono.just(testBalance));
 
-        webTestClient.get()
+        authenticatedClient().get()
                 .uri("/cart/items")
                 .exchange()
                 .expectStatus().isOk();
@@ -58,7 +58,7 @@ class CartControllerTest extends BaseControllerTest {
         when(cartService.updateItemCount(anyLong(), eq(1L), eq(CartAction.PLUS)))
                 .thenReturn(Mono.empty());
 
-        webTestClient.post()
+        authenticatedClient().post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/items")
                         .queryParam("id", "1")
@@ -81,7 +81,7 @@ class CartControllerTest extends BaseControllerTest {
         when(cartService.updateItemCount(anyLong(), eq(1L), eq(CartAction.MINUS)))
                 .thenReturn(Mono.empty());
 
-        webTestClient.post()
+        authenticatedClient().post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/items")
                         .queryParam("id", "1")
@@ -104,7 +104,7 @@ class CartControllerTest extends BaseControllerTest {
         when(cartService.updateItemCount(anyLong(), eq(5L), eq(CartAction.PLUS)))
                 .thenReturn(Mono.empty());
 
-        webTestClient.post()
+        authenticatedClient().post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/items/5")
                         .queryParam("id", "5")
@@ -134,7 +134,7 @@ class CartControllerTest extends BaseControllerTest {
                 .thenReturn(Mono.just(BigDecimal.valueOf(30.0)));
         when(paymentsApi.getBalance(anyLong())).thenReturn(Mono.just(testBalance));
 
-        webTestClient.post()
+        authenticatedClient().post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/cart/items")
                         .queryParam("id", "1")
@@ -149,7 +149,7 @@ class CartControllerTest extends BaseControllerTest {
 
     @Test
     void addOrRemoveToCart_shouldNotUpdateCart_whenNoAction() {
-        webTestClient.post()
+        authenticatedClient().post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/items")
                         .queryParam("id", "1")

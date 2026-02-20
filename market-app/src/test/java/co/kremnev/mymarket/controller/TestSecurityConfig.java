@@ -16,12 +16,6 @@ import java.util.concurrent.atomic.AtomicReference;
 @EnableWebFluxSecurity
 public class TestSecurityConfig {
 
-    /**
-     * Static holder for test authentication. Set before each test to provide
-     * a SecurityContext without reading from the Reactor context, which avoids
-     * the StackOverflowError caused by ReactorContextTestExecutionListener's
-     * SecuritySubContext wrapping in Spring Security 7.x.
-     */
     static final AtomicReference<SecurityContext> MOCK_CONTEXT = new AtomicReference<>();
 
     @Bean

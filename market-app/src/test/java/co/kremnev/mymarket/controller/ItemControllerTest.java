@@ -58,8 +58,6 @@ class ItemControllerTest extends BaseControllerTest {
 
     @Test
     void getItems_shouldDisplayItemsPage_anonymous() {
-        TestSecurityConfig.MOCK_CONTEXT.set(null);
-
         Page<Item> page = new PageImpl<>(
                 List.of(testItem1, testItem2),
                 PageRequest.of(0, 5),
@@ -79,8 +77,6 @@ class ItemControllerTest extends BaseControllerTest {
 
     @Test
     void getItems_shouldDisplayItemsPageAtRootUrl() {
-        TestSecurityConfig.MOCK_CONTEXT.set(null);
-
         Page<Item> page = new PageImpl<>(
                 List.of(testItem1),
                 PageRequest.of(0, 5),
@@ -99,8 +95,6 @@ class ItemControllerTest extends BaseControllerTest {
 
     @Test
     void getItems_shouldAcceptSearchParameter() {
-        TestSecurityConfig.MOCK_CONTEXT.set(null);
-
         Page<Item> page = new PageImpl<>(
                 List.of(testItem1),
                 PageRequest.of(0, 5),
@@ -122,8 +116,6 @@ class ItemControllerTest extends BaseControllerTest {
 
     @Test
     void getItems_shouldAcceptSortParameter() {
-        TestSecurityConfig.MOCK_CONTEXT.set(null);
-
         Page<Item> page = new PageImpl<>(
                 List.of(testItem1, testItem2),
                 PageRequest.of(0, 5),
@@ -145,8 +137,6 @@ class ItemControllerTest extends BaseControllerTest {
 
     @Test
     void getItems_shouldAcceptPaginationParameters() {
-        TestSecurityConfig.MOCK_CONTEXT.set(null);
-
         Page<Item> page = new PageImpl<>(
                 List.of(testItem1),
                 PageRequest.of(1, 10),
@@ -169,8 +159,6 @@ class ItemControllerTest extends BaseControllerTest {
 
     @Test
     void getItems_shouldDisplayEmptyPage() {
-        TestSecurityConfig.MOCK_CONTEXT.set(null);
-
         Page<Item> page = new PageImpl<>(
                 List.of(),
                 PageRequest.of(0, 5),
@@ -189,8 +177,6 @@ class ItemControllerTest extends BaseControllerTest {
 
     @Test
     void getItem_shouldDisplayItemPage_whenItemExists() {
-        TestSecurityConfig.MOCK_CONTEXT.set(null);
-
         when(itemService.getById(1L)).thenReturn(Mono.just(testItem1));
 
         webTestClient.get()
@@ -204,8 +190,6 @@ class ItemControllerTest extends BaseControllerTest {
 
     @Test
     void getItem_shouldReturnNotFoundView_whenItemDoesNotExist() {
-        TestSecurityConfig.MOCK_CONTEXT.set(null);
-
         when(itemService.getById(999L)).thenReturn(Mono.empty());
 
         webTestClient.get()
@@ -227,7 +211,7 @@ class ItemControllerTest extends BaseControllerTest {
         when(itemService.getAllItems(any(ItemsQueryRequest.class))).thenReturn(Mono.just(page));
         when(cartService.getCart(1L)).thenReturn(Mono.just(testCart));
 
-        webTestClient.get()
+        authenticatedClient().get()
                 .uri("/items")
                 .exchange()
                 .expectStatus().isOk();
@@ -247,7 +231,7 @@ class ItemControllerTest extends BaseControllerTest {
         when(itemService.getById(1L)).thenReturn(Mono.just(testItem1));
         when(cartService.getCart(1L)).thenReturn(Mono.just(testCart));
 
-        webTestClient.get()
+        authenticatedClient().get()
                 .uri("/items/1")
                 .exchange()
                 .expectStatus().isOk();

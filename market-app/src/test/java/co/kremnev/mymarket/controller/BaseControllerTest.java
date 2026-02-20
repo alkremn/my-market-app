@@ -7,7 +7,6 @@ import co.kremnev.mymarket.service.ItemService;
 import co.kremnev.mymarket.service.OrderService;
 import co.kremnev.mymarket.service.UserService;
 import co.kremnev.payment.client.api.PaymentsApi;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
@@ -15,10 +14,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import reactor.core.publisher.Mono;
-
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
 
 @Import(TestSecurityConfig.class)
 public abstract class BaseControllerTest {
@@ -27,17 +22,7 @@ public abstract class BaseControllerTest {
     protected WebTestClient webTestClient;
 
     @BeforeEach
-    void setUpSecurity() {
-        // Set mock auth via static holder — avoids Reactor context entirely,
-        // preventing StackOverflowError from SecuritySubContext in Spring Security 7.x
-        var securityContext = new SecurityContextImpl(mockAuthentication());
-        TestSecurityConfig.MOCK_CONTEXT.set(securityContext);
-
-        when(userService.findByUsername(anyString())).thenReturn(Mono.just(mockSecurityUser()));
-    }
-
-    @AfterEach
-    void tearDownSecurity() {
+    void clearSecurityContext() {
         TestSecurityConfig.MOCK_CONTEXT.set(null);
     }
 
@@ -63,9 +48,15 @@ public abstract class BaseControllerTest {
         return new SecurityUser(user);
     }
 
-    protected UsernamePasswordAuthenticationToken mockAuthentication() {
+    protected UsernamePasswordAuthenticationToken createMockAuthentication() {
         SecurityUser user = mockSecurityUser();
         return UsernamePasswordAuthenticationToken.authenticated(
                 user, user.getPassword(), user.getAuthorities());
+    }
+
+    protected WebTestClient authenticatedClient() {
+        TestSecurityConfig.MOCK_CONTEXT.set(
+                new SecurityContextImpl(createMockAuthentication()));
+        return webTestClient;
     }
 }

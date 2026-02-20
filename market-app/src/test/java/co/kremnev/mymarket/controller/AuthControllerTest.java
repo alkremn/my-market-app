@@ -1,7 +1,6 @@
 package co.kremnev.mymarket.controller;
 
 import co.kremnev.mymarket.model.User;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
 import org.springframework.web.server.ServerWebExchange;
@@ -13,11 +12,6 @@ import static org.mockito.Mockito.*;
 
 @WebFluxTest(AuthController.class)
 class AuthControllerTest extends BaseControllerTest {
-
-    @BeforeEach
-    void setUp() {
-        TestSecurityConfig.MOCK_CONTEXT.set(null);
-    }
 
     @Test
     void loginPage_shouldReturnLoginView() {

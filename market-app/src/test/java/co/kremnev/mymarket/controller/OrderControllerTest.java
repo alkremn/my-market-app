@@ -37,7 +37,7 @@ class OrderControllerTest extends BaseControllerTest {
     void getOrders_shouldDisplayOrdersPage() {
         when(orderService.getAll(anyLong())).thenReturn(Flux.just(testOrder));
 
-        webTestClient.get()
+        authenticatedClient().get()
                 .uri("/orders")
                 .exchange()
                 .expectStatus().isOk();
@@ -49,7 +49,7 @@ class OrderControllerTest extends BaseControllerTest {
     void getOrderById_shouldDisplayOrderPage_whenOrderExists() {
         when(orderService.getById(eq(1L), anyLong())).thenReturn(Mono.just(testOrder));
 
-        webTestClient.get()
+        authenticatedClient().get()
                 .uri("/orders/1")
                 .exchange()
                 .expectStatus().isOk();
@@ -61,7 +61,7 @@ class OrderControllerTest extends BaseControllerTest {
     void getOrderById_shouldReturnNotFoundView_whenOrderDoesNotExist() {
         when(orderService.getById(eq(999L), anyLong())).thenReturn(Mono.empty());
 
-        webTestClient.get()
+        authenticatedClient().get()
                 .uri("/orders/999")
                 .exchange()
                 .expectStatus().isOk();
@@ -73,7 +73,7 @@ class OrderControllerTest extends BaseControllerTest {
     void getOrderById_shouldAcceptNewOrderParameter() {
         when(orderService.getById(eq(1L), anyLong())).thenReturn(Mono.just(testOrder));
 
-        webTestClient.get()
+        authenticatedClient().get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/orders/1")
                         .queryParam("newOrder", "true")
@@ -88,7 +88,7 @@ class OrderControllerTest extends BaseControllerTest {
     void buy_shouldCheckoutAndRedirect() {
         when(orderProcessingService.checkout(anyLong())).thenReturn(Mono.just(testOrder));
 
-        webTestClient.post()
+        authenticatedClient().post()
                 .uri("/buy")
                 .exchange()
                 .expectStatus().is3xxRedirection()
@@ -103,7 +103,7 @@ class OrderControllerTest extends BaseControllerTest {
                 .thenReturn(Mono.error(WebClientResponseException.create(
                         HttpStatus.BAD_REQUEST.value(), "Bad Request", null, null, null)));
 
-        webTestClient.post()
+        authenticatedClient().post()
                 .uri("/buy")
                 .exchange()
                 .expectStatus().isOk();
@@ -116,7 +116,7 @@ class OrderControllerTest extends BaseControllerTest {
         when(orderProcessingService.checkout(anyLong()))
                 .thenReturn(Mono.error(new RuntimeException("Connection refused")));
 
-        webTestClient.post()
+        authenticatedClient().post()
                 .uri("/buy")
                 .exchange()
                 .expectStatus().isOk();
