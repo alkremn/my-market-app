@@ -32,12 +32,8 @@ public class ItemController {
     @GetMapping(value = {"/", "/items"})
     public Mono<Rendering> getItems(@ModelAttribute ItemsQueryRequest queryParams,
                                     @AuthenticationPrincipal SecurityUser principal) {
-        Mono<Cart> cartMono = principal != null
-                ? cartService.getCart(principal.getId())
-                : Mono.just(new Cart());
-
         return itemService.getAllItems(queryParams)
-                .zipWith(cartMono)
+                .zipWith(getCartOrEmpty(principal))
                 .map(tuple -> {
                     var page = tuple.getT1();
                     var currentPaging = new Paging(
@@ -63,17 +59,19 @@ public class ItemController {
     @GetMapping("/items/{id}")
     public Mono<Rendering> getItem(@PathVariable("id") long id,
                                    @AuthenticationPrincipal SecurityUser principal) {
-        Mono<Cart> cartMono = principal != null
-                ? cartService.getCart(principal.getId())
-                : Mono.just(new Cart());
-
         return itemService.getById(id)
-                .zipWith(cartMono)
+                .zipWith(getCartOrEmpty(principal))
                 .map(tuple -> ItemDto.from(tuple.getT1(),
                                 tuple.getT2().getItemCountById(tuple.getT1().getId())))
                 .map(item -> Rendering.view("item")
                         .modelAttribute("item", item)
                         .build())
                 .switchIfEmpty(Mono.just(Rendering.view("notfound").build()));
+    }
+
+    private Mono<Cart> getCartOrEmpty(SecurityUser principal) {
+        return principal != null
+                ? cartService.getCart(principal.getId())
+                : Mono.just(new Cart());
     }
 }
