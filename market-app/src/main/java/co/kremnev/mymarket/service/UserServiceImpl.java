@@ -70,14 +70,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Mono<Void> registerAndLogin(String username, String rawPassword, ServerWebExchange exchange) {
-        return registerUser(username, rawPassword)
-                .flatMap(user -> {
-                    var principal = new SecurityUser(user);
-                    var authentication = new UsernamePasswordAuthenticationToken(
-                            principal, null, principal.getAuthorities());
-                    var securityContext = new SecurityContextImpl(authentication);
-                    return securityContextRepository.save(exchange, securityContext);
-                });
+    public Mono<Void> loginUser(User user, ServerWebExchange exchange) {
+        var principal = new SecurityUser(user);
+        var authentication = new UsernamePasswordAuthenticationToken(
+                principal, null, principal.getAuthorities());
+        var securityContext = new SecurityContextImpl(authentication);
+        return securityContextRepository.save(exchange, securityContext);
     }
 }

@@ -1,5 +1,6 @@
 package co.kremnev.mymarket.controller;
 
+import co.kremnev.mymarket.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
@@ -52,7 +53,12 @@ class AuthControllerTest extends BaseControllerTest {
 
     @Test
     void register_shouldRedirectToItems_whenSuccessful() {
-        when(userService.registerAndLogin(eq("newuser"), eq("password123"), any(ServerWebExchange.class)))
+        User user = new User("newuser", "encoded");
+        user.setId(1L);
+        user.setEnabled(true);
+        when(userService.registerUser(eq("newuser"), eq("password123")))
+                .thenReturn(Mono.just(user));
+        when(userService.loginUser(any(User.class), any(ServerWebExchange.class)))
                 .thenReturn(Mono.empty());
 
         webTestClient.post()
@@ -63,12 +69,13 @@ class AuthControllerTest extends BaseControllerTest {
                 .expectStatus().is3xxRedirection()
                 .expectHeader().location("/items");
 
-        verify(userService).registerAndLogin(eq("newuser"), eq("password123"), any(ServerWebExchange.class));
+        verify(userService).registerUser(eq("newuser"), eq("password123"));
+        verify(userService).loginUser(any(User.class), any(ServerWebExchange.class));
     }
 
     @Test
     void register_shouldShowRegisterPage_whenRegistrationFails() {
-        when(userService.registerAndLogin(eq("existing"), eq("password123"), any(ServerWebExchange.class)))
+        when(userService.registerUser(eq("existing"), eq("password123")))
                 .thenReturn(Mono.error(new RuntimeException("Имя пользователя уже занято")));
 
         webTestClient.post()
@@ -78,7 +85,7 @@ class AuthControllerTest extends BaseControllerTest {
                 .exchange()
                 .expectStatus().isOk();
 
-        verify(userService).registerAndLogin(eq("existing"), eq("password123"), any(ServerWebExchange.class));
+        verify(userService).registerUser(eq("existing"), eq("password123"));
     }
 
     @Test
@@ -90,7 +97,7 @@ class AuthControllerTest extends BaseControllerTest {
                 .exchange()
                 .expectStatus().isOk();
 
-        verify(userService, never()).registerAndLogin(any(), any(), any());
+        verify(userService, never()).registerUser(any(), any());
     }
 
     @Test
@@ -102,6 +109,6 @@ class AuthControllerTest extends BaseControllerTest {
                 .exchange()
                 .expectStatus().isOk();
 
-        verify(userService, never()).registerAndLogin(any(), any(), any());
+        verify(userService, never()).registerUser(any(), any());
     }
 }

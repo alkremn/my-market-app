@@ -8,5 +8,5 @@ import reactor.core.publisher.Mono;
 
 public interface UserService extends ReactiveUserDetailsService, ReactiveUserDetailsPasswordService {
     Mono<User> registerUser(String username, String rawPassword);
-    Mono<Void> registerAndLogin(String username, String rawPassword, ServerWebExchange exchange);
+    Mono<Void> loginUser(User user, ServerWebExchange exchange);
 }

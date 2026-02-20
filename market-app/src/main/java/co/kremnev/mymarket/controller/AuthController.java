@@ -49,7 +49,8 @@ public class AuthController {
             return Mono.just("register");
         }
 
-        return userService.registerAndLogin(request.username(), request.password(), exchange)
+        return userService.registerUser(request.username(), request.password())
+                .flatMap(user -> userService.loginUser(user, exchange))
                 .thenReturn("redirect:/items")
                 .onErrorResume(e -> {
                     model.addAttribute("error", e.getMessage());
