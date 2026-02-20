@@ -6,6 +6,7 @@ import co.kremnev.payment.model.PaymentResponse;
 import reactor.core.publisher.Mono;
 
 public interface PaymentService {
-    Mono<Balance> getUserBalance(String userId);
+    Mono<Balance> getUserBalance(Long userId);
+    Mono<Balance> createBalance(Long userId);
     Mono<PaymentResponse> createPayment(PaymentRequest request);
 }

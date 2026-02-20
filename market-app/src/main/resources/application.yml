@@ -10,6 +10,21 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+      repositories:
+        enabled: false
+  security:
+    oauth2:
+      client:
+        registration:
+          payment-client:
+            provider: keycloak
+            client-id: payment-client
+            client-secret: payment-client-secret
+            authorization-grant-type: client_credentials
+            scope: openid
+        provider:
+          keycloak:
+            issuer-uri: ${KEYCLOAK_URL:http://localhost:8080}/realms/market-realm
 cache:
   ttl: PT1M
 

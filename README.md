@@ -5,11 +5,19 @@
 ## Описание
 
 My Market App — это полнофункциональное приложение электронной коммерции, которое позволяет пользователям:
+- Регистрироваться и входить в систему
 - Просматривать каталог товаров с поиском и сортировкой
 - Добавлять товары в корзину
 - Управлять корзиной (добавление, удаление, изменение количества)
 - Оформлять заказы с обработкой платежей
 - Просматривать историю заказов
+
+Анонимные пользователи могут просматривать каталог. Корзина, заказы и оплата доступны только авторизованным пользователям.
+
+### Аутентификация и авторизация
+
+- **Пользователь → market-app**: Form login (username/password хранятся в PostgreSQL)
+- **market-app → payment-service**: OAuth2 Client Credentials Flow через Keycloak (machine-to-machine)
 
 ## Структура проекта
 
@@ -18,7 +26,10 @@ my-market-app/
 ├── market-app/          # Основное веб-приложение магазина
 ├── payment-service/     # Микросервис обработки платежей
 ├── payment-api/         # OpenAPI спецификация и сгенерированные клиенты
-└── docker/              # Docker конфигурации
+├── docker/              # Docker конфигурации
+│   ├── docker-compose.yml
+│   └── keycloak/        # Keycloak realm конфигурация
+└── proxy/               # Nginx конфигурация
 ```
 
 ## Технологии
@@ -27,14 +38,18 @@ my-market-app/
 - **Spring Boot 4.0.1** - основной фреймворк
 - **Spring WebFlux** - реактивный веб-слой
 - **Spring Data R2DBC** - реактивная работа с базой данных
-- **Spring Session** - управление сессиями
+- **Spring Security** - аутентификация (form login) и авторизация
+- **Spring OAuth2 Client** - Client Credentials Flow для межсервисного взаимодействия
+- **Spring OAuth2 Resource Server** - JWT валидация в payment-service
 - **Project Reactor** - реактивные потоки (Mono/Flux)
 - **Thymeleaf** - шаблонизатор для представлений
 
-### База данных и кэширование
-- **PostgreSQL** - production база данных
-- **R2DBC PostgreSQL** - реактивный драйвер
-- **Redis** - кэширование корзины
+### Инфраструктура
+- **PostgreSQL** - основная база данных
+- **Redis** - кэширование корзины (с настраиваемым TTL)
+- **Keycloak** - OAuth2 сервер для service-to-service аутентификации
+- **Nginx** - reverse proxy
+- **Docker Compose** - оркестрация всех сервисов
 
 ### API
 - **OpenAPI Generator** - генерация клиентов и серверных интерфейсов
@@ -55,16 +70,20 @@ my-market-app/
 #### Market App
 
 **Контроллеры:**
+- `AuthController` - регистрация и вход пользователей
 - `ItemController` - управление каталогом товаров
 - `CartController` - управление корзиной
 - `OrderController` - управление заказами
 
 **Сервисы:**
+- `UserService` - регистрация, аутентификация, программный логин после регистрации
 - `ItemService` - бизнес-логика работы с товарами
 - `CartService` - бизнес-логика корзины с Redis кэшированием
 - `OrderService` - бизнес-логика заказов
+- `OrderProcessingService` - оформление заказа с оплатой через payment-service
 
 **Репозитории:**
+- `UserRepository` - реактивный доступ к данным пользователей
 - `ItemRepository` - реактивный доступ к данным товаров
 - `CartRepository` - реактивный доступ к данным корзин
 - `CartItemRepository` - реактивный доступ к позициям корзины
@@ -72,6 +91,8 @@ my-market-app/
 - `OrderItemRepository` - реактивный доступ к позициям заказов
 
 #### Payment Service (внутренний микросервис)
+
+Защищён JWT авторизацией — принимает запросы только с валидным OAuth2 токеном и ролью `payment.balance.manage`.
 
 **Контроллеры:**
 - `PaymentController` - внутренний API для обработки платежей
@@ -92,7 +113,7 @@ my-market-app/
 
 ### Запуск с Docker Compose
 
-Запуск всего стека (приложения + база данных + Redis):
+Запуск всего стека (приложения + база данных + Redis + Keycloak + Nginx):
 
 ```bash
 docker compose -f docker/docker-compose.yml up --build

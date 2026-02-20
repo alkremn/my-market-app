@@ -1,12 +1,14 @@
 package co.kremnev.mymarket.controller;
 
 import co.kremnev.mymarket.dto.OrderDto;
+import co.kremnev.mymarket.model.SecurityUser;
 import co.kremnev.mymarket.service.OrderProcessingService;
 import co.kremnev.mymarket.service.OrderService;
 import jakarta.validation.constraints.Min;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,7 +17,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.reactive.result.view.Rendering;
-import org.springframework.web.server.WebSession;
 import reactor.core.publisher.Mono;
 
 @Controller
@@ -33,28 +34,30 @@ public class OrderController {
     }
 
     @GetMapping("/orders")
-    public Mono<Rendering> getOrders() {
+    public Mono<Rendering> getOrders(@AuthenticationPrincipal SecurityUser principal) {
         return Mono.just(
                 Rendering.view("orders")
-                        .modelAttribute("orders", orderService.getAll().map(OrderDto::from))
+                        .modelAttribute("orders", orderService.getAll(principal.getId()).map(OrderDto::from))
                         .build()
         );
     }
 
     @GetMapping("/orders/{id}")
-    public Mono<Rendering> getOrderById(@PathVariable @Min(1) long id, @RequestParam(required = false) String newOrder) {
-        return orderService.getById(id)
+    public Mono<Rendering> getOrderById(@PathVariable @Min(1) long id,
+                                        @RequestParam(required = false) String newOrder,
+                                        @AuthenticationPrincipal SecurityUser principal) {
+        return orderService.getById(id, principal.getId())
                 .map(order -> Rendering.view("order")
                         .modelAttribute("order", OrderDto.from(order)).build())
                 .switchIfEmpty(Mono.just(Rendering.view("notfound").build()));
     }
 
     @PostMapping("/buy")
-    public Mono<Rendering> buy(WebSession session) {
-        return orderProcessingService.checkout(session.getId())
+    public Mono<Rendering> buy(@AuthenticationPrincipal SecurityUser principal) {
+        return orderProcessingService.checkout(principal.getId())
                 .map(order -> Rendering.redirectTo("orders/" + order.getId() + "?newOrder=true").build())
                 .onErrorResume(e -> {
-                    logger.error("Checkout failed for session {}: {}", session.getId(), e.getMessage());
+                    logger.error("Checkout failed for user {}: {}", principal.getId(), e.getMessage());
                     String message = (e instanceof WebClientResponseException.BadRequest)
                             ? "Оплата не прошла. Недостаточно средств на балансе."
                             : "Произошла ошибка при оформлении заказа. Попробуйте позже.";

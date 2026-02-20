@@ -9,10 +9,10 @@ import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.UUID;
 
 @Service
 public class PaymentServiceImpl implements PaymentService {
+
     private static final int MIN_AMOUNT = 10_000;
     private static final int MAX_AMOUNT = 100_000;
 
@@ -23,23 +23,25 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public Mono<Balance> getUserBalance(String userId) {
-        UUID userUuid = UUID.fromString(userId);
-        return paymentRepository
-                .findById(userUuid)
+    public Mono<Balance> getUserBalance(Long userId) {
+        return paymentRepository.findById(userId);
+    }
+
+    @Override
+    public Mono<Balance> createBalance(Long userId) {
+        return paymentRepository.findById(userId)
+                .flatMap(existing -> Mono.<Balance>error(
+                        new BalanceAlreadyExistsException(userId)))
                 .switchIfEmpty(Mono.defer(() -> {
-                    var newBalance = new BigDecimal(getRandomNumber());
-                    return paymentRepository.save(new Balance(
-                            userUuid,
-                            newBalance.setScale(2, RoundingMode.HALF_EVEN)
-                    ));
+                    var amount = new BigDecimal(randomAmount())
+                            .setScale(2, RoundingMode.HALF_EVEN);
+                    return paymentRepository.save(new Balance(userId, amount));
                 }));
     }
 
     @Override
     public Mono<PaymentResponse> createPayment(PaymentRequest request) {
-        UUID userUuid = UUID.fromString(request.getUserId());
-        return paymentRepository.findById(userUuid)
+        return paymentRepository.findById(request.getUserId())
                 .flatMap(balance -> {
                     if (balance.getBalance().compareTo(request.getAmount()) < 0) {
                         return Mono.just(new PaymentResponse()
@@ -52,11 +54,11 @@ public class PaymentServiceImpl implements PaymentService {
                                     .success(true)
                                     .newBalance(saved.getBalance()));
                 })
-                .switchIfEmpty(Mono.just(new PaymentResponse().success(false)));
+                .switchIfEmpty(Mono.defer(() -> Mono.just(new PaymentResponse().success(false))));
     }
 
-    private double getRandomNumber() {
-        var randomNumber = ((Math.random() * (MAX_AMOUNT - MIN_AMOUNT)) + MIN_AMOUNT);
-        return Math.round(randomNumber * 100.0) / 100.0;
+    private double randomAmount() {
+        double raw = (Math.random() * (MAX_AMOUNT - MIN_AMOUNT)) + MIN_AMOUNT;
+        return Math.round(raw * 100.0) / 100.0;
     }
 }

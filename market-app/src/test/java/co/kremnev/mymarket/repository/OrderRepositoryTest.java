@@ -1,6 +1,7 @@
 package co.kremnev.mymarket.repository;
 
 import co.kremnev.mymarket.model.Order;
+import co.kremnev.mymarket.model.User;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,14 +21,26 @@ class OrderRepositoryTest {
     @Autowired
     private OrderRepository orderRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    private Long testUserId;
+
     @BeforeEach
     void setUp() {
-        orderRepository.deleteAll().block();
+        orderRepository.deleteAll()
+                .then(userRepository.deleteAll())
+                .block();
+
+        User user = new User("testuser", "password");
+        user.setEnabled(true);
+        testUserId = userRepository.save(user).map(User::getId).block();
     }
 
     private Order createOrder() {
         var now = LocalDateTime.now();
         Order order = new Order();
+        order.setUserId(testUserId);
         order.setCreatedAt(now);
         order.setUpdatedAt(now);
         return order;

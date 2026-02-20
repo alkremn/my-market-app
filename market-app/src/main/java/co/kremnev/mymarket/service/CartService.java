@@ -9,9 +9,9 @@ import reactor.core.publisher.Mono;
 import java.math.BigDecimal;
 
 public interface CartService {
-    Mono<Cart> getCart(String sessionId);
-    Mono<Void> updateItemCount(String sessionId, Long itemId, CartAction action);
-    Flux<CartItem> getCartItems(String sessionId);
-    Mono<BigDecimal> getCartTotal(String sessionId);
-    Mono<Void> clear(String sessionId);
+    Mono<Cart> getCart(Long userId);
+    Mono<Void> updateItemCount(Long userId, Long itemId, CartAction action);
+    Flux<CartItem> getCartItems(Long userId);
+    Mono<BigDecimal> getCartTotal(Long userId);
+    Mono<Void> clear(Long userId);
 }

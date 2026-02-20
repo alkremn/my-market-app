@@ -3,16 +3,18 @@ package co.kremnev.mymarket.controller;
 import co.kremnev.mymarket.dto.ItemDto;
 import co.kremnev.mymarket.dto.Request.ItemsQueryRequest;
 import co.kremnev.mymarket.dto.Paging;
+import co.kremnev.mymarket.model.Cart;
+import co.kremnev.mymarket.model.SecurityUser;
 import co.kremnev.mymarket.service.CartService;
 import co.kremnev.mymarket.service.ItemService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.reactive.result.view.Rendering;
-import org.springframework.web.server.WebSession;
 import reactor.core.publisher.Mono;
 
 @Controller
@@ -28,9 +30,10 @@ public class ItemController {
     }
 
     @GetMapping(value = {"/", "/items"})
-    public Mono<Rendering> getItems(@ModelAttribute ItemsQueryRequest queryParams, WebSession session) {
+    public Mono<Rendering> getItems(@ModelAttribute ItemsQueryRequest queryParams,
+                                    @AuthenticationPrincipal SecurityUser principal) {
         return itemService.getAllItems(queryParams)
-                .zipWith(cartService.getCart(session.getId()))
+                .zipWith(getCartOrEmpty(principal))
                 .map(tuple -> {
                     var page = tuple.getT1();
                     var currentPaging = new Paging(
@@ -42,7 +45,7 @@ public class ItemController {
                     var cart = tuple.getT2();
 
                     var items = page.getContent().stream()
-                            .map(item -> ItemDto.from(item, cart.getItemCountById(item.getId()))) // or get count from cart
+                            .map(item -> ItemDto.from(item, cart.getItemCountById(item.getId())))
                             .toList();
                     return Rendering.view("items")
                         .modelAttribute("items", items)
@@ -54,14 +57,21 @@ public class ItemController {
     }
 
     @GetMapping("/items/{id}")
-    public Mono<Rendering> getItem(@PathVariable("id") long id, WebSession session) {
+    public Mono<Rendering> getItem(@PathVariable("id") long id,
+                                   @AuthenticationPrincipal SecurityUser principal) {
         return itemService.getById(id)
-                .zipWith(cartService.getCart(session.getId()))
+                .zipWith(getCartOrEmpty(principal))
                 .map(tuple -> ItemDto.from(tuple.getT1(),
                                 tuple.getT2().getItemCountById(tuple.getT1().getId())))
                 .map(item -> Rendering.view("item")
                         .modelAttribute("item", item)
                         .build())
                 .switchIfEmpty(Mono.just(Rendering.view("notfound").build()));
+    }
+
+    private Mono<Cart> getCartOrEmpty(SecurityUser principal) {
+        return principal != null
+                ? cartService.getCart(principal.getId())
+                : Mono.just(new Cart());
     }
 }

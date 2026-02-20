@@ -14,8 +14,8 @@ public class Cart {
     @Id
     private Long id;
 
-    @Column("session_id")
-    private String sessionId;
+    @Column("user_id")
+    private Long userId;
 
     @Transient
     private List<CartItem> items = new ArrayList<>();
@@ -34,12 +34,12 @@ public class Cart {
         this.id = id;
     }
 
-    public String getSessionId() {
-        return sessionId;
+    public Long getUserId() {
+        return userId;
     }
 
-    public void setSessionId(String sessionId) {
-        this.sessionId = sessionId;
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 
     public List<CartItem> getItems() {

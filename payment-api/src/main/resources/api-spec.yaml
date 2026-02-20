@@ -19,7 +19,8 @@ paths:
           description: User identification number
           required: true
           schema:
-            type: string
+            type: integer
+            format: int64
       responses:
         '200':
           description: Current balance
@@ -27,6 +28,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BalanceDto'
+
+  /balances:
+    post:
+      operationId: createBalance
+      summary: Create initial balance for a new user
+      tags:
+        - Payments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBalanceRequest'
+      responses:
+        '201':
+          description: Balance created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceDto'
+        '409':
+          description: Balance already exists for this user
 
   /payments:
     post:
@@ -66,9 +89,19 @@ components:
       type: object
       properties:
         userId:
-          type: string
+          type: integer
+          format: int64
         balance:
           type: number
+
+    CreateBalanceRequest:
+      type: object
+      required:
+        - userId
+      properties:
+        userId:
+          type: integer
+          format: int64
 
     PaymentRequest:
       type: object
@@ -77,7 +110,8 @@ components:
         - amount
       properties:
         userId:
-          type: string
+          type: integer
+          format: int64
         amount:
           type: number
 

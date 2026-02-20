@@ -23,16 +23,16 @@ public class OrderProcessingServiceImpl implements OrderProcessingService {
     }
 
     @Override
-    public Mono<Order> checkout(String sessionId) {
+    public Mono<Order> checkout(Long userId) {
         return Mono.zip(
-                cartService.getCartItems(sessionId).collectList(),
-                cartService.getCartTotal(sessionId)
+                cartService.getCartItems(userId).collectList(),
+                cartService.getCartTotal(userId)
         ).flatMap(tuple -> {
             var items = tuple.getT1();
             var total = tuple.getT2();
-            return paymentsApi.processPayment(new PaymentRequest().userId(sessionId).amount(total))
-                    .flatMap(paymentResult -> orderService.create(items))
-                    .flatMap(order -> cartService.clear(sessionId).thenReturn(order));
-        }).doOnError(error -> logger.error("Checkout failed for session {}: {}", sessionId, error.getMessage()));
+            return paymentsApi.processPayment(new PaymentRequest().userId(userId).amount(total))
+                    .flatMap(paymentResult -> orderService.create(items, userId))
+                    .flatMap(order -> cartService.clear(userId).thenReturn(order));
+        }).doOnError(error -> logger.error("Checkout failed for user {}: {}", userId, error.getMessage()));
     }
 }

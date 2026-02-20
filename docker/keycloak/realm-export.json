@@ -1,0 +1,50 @@
+{
+  "realm": "market-realm",
+  "enabled": true,
+  "sslRequired": "none",
+  "clients": [
+    {
+      "clientId": "payment-service",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "payment-service-secret",
+      "serviceAccountsEnabled": false,
+      "publicClient": false,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "payment-client",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "payment-client-secret",
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "protocol": "openid-connect"
+    }
+  ],
+  "roles": {
+    "realm": [],
+    "client": {
+      "payment-service": [
+        {
+          "name": "payment.balance.manage",
+          "clientRole": true
+        }
+      ]
+    }
+  },
+  "users": [
+    {
+      "username": "service-account-payment-client",
+      "enabled": true,
+      "serviceAccountClientId": "payment-client",
+      "clientRoles": {
+        "payment-service": ["payment.balance.manage"]
+      }
+    }
+  ]
+}
